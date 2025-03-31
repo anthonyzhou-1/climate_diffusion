@@ -1,0 +1,83 @@
+log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
+#log_dir: logs
+project_name: PLASIM_flow_matching
+experiment_name: prelim
+mixed_precision: 'no'
+
+log_interval: 25
+save_model_steps: 25000
+eval_sampling_steps: 10000
+
+model:
+    name: dit
+    num_fa_blocks: 8
+    num_blocks: 8
+    patch_size: 2
+    cond_dim: 512
+    num_cond: 2 # day of year, hour of day
+    num_constants: 6 # lsm sg z0; rsdt sic sst
+    dim: 512
+    num_heads: 8
+    in_dim: 116  # 5 multilevel vars * 10 levels = 50 + 8 surface features = 58 * 2 (past timestep + noise) = 116
+    out_dim: 58 # only predict noise 
+    proj_bottleneck_dim: 512
+    kernel_expansion_ratio: 1.0
+    depth_dropout: 0.0
+    scale_by_sigma: True
+    patch_size: 2
+    l_max: 20
+
+data:
+    # perlmutter paths
+    train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_12-111.zarr
+    val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_11.zarr
+    norm_stats_path: /pscratch/sd/a/ayz2/PLASIM/processed/norm_stats.npz
+    boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
+
+    # local paths
+    #train_data_path: /data/data/zijie_data/processed_weather_data/combined_first_20_years.zarr
+    #val_data_path: /data/data/zijie_data/processed_weather_data/combined_first_20_years.zarr
+    #norm_stats_path: /data/data/zijie_data/processed_weather_data/norm_stats.npz
+    #boundary_path: /data/PLASIM/boundary_vars/boundary_vars.h5
+
+    training_nsteps: 1 # train on next-step prediction
+    val_nsteps: 40 # valid up to 40 steps
+    nlat: 64
+    nlon: 128
+    with_poles: False
+    load_into_memory: False
+
+training:
+    lr: 1.7e-4
+    min_lr: 1.e-7
+    beta1: 0.9
+    beta2: 0.95
+    warmup_steps: 2000   # 0.05
+    total_steps: 200000   # 150k
+    batch_size_per_device: 32
+    eval_batch_size: 32
+    num_workers: 4
+    gradient_accumulation_steps: 1
+    skip_step: 0
+    gradient_clip: 1.0
+
+    resume: False
+    ema_after: 100000
+
+    compile_model: False
+    ema_decay: 0.9995
+
+    num_refinement_steps: 5 # 5
+    num_train_steps: 11
+    min_noise_std: 1.e-3 # useless for flow
+    noise_schedule: flow
+    noise_type: sphere
+    spherical_l_max: 32 # useless for gaussian
+    noise_input: False
+    input_noise_scale: 1.e-1
+
+    integrator: euler
+    restart: False
+    restart_step: 8
+
+    visualize: True
