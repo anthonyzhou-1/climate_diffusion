@@ -1,12 +1,8 @@
 log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
 #log_dir: logs
 project_name: PLASIM_flow_matching
-experiment_name: prelim
-mixed_precision: 'no'
-
-log_interval: 25
-save_model_steps: 25000
-eval_sampling_steps: 10000
+devices: [0]
+accelerator: gpu
 
 model:
     name: dit
@@ -52,20 +48,18 @@ training:
     min_lr: 1.e-7
     beta1: 0.9
     beta2: 0.95
-    warmup_steps: 2000   # 0.05
-    total_steps: 200000   # 150k
+    
+    check_val_every_n_epoch: 10
+    log_every_n_steps: 64
+    max_epochs: 250
+    checkpoint: null
+
     batch_size_per_device: 32
     eval_batch_size: 32
     num_workers: 4
     gradient_accumulation_steps: 1
     skip_step: 0
     gradient_clip: 1.0
-
-    resume: False
-    ema_after: 100000
-
-    compile_model: False
-    ema_decay: 0.9995
 
     num_refinement_steps: 5 # 5
     num_train_steps: 11

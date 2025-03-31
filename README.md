@@ -9,11 +9,6 @@ pip install wandb h5py einops matplotlib torch-harmonics
 pip install "xarray[complete]" 
 ```
 
-The PDE-Refiner baseline has extra dependencies:
-```
-conda install -c conda-forge diffusers
-```
-
 ## Datasets
 
 Data is organized in a zarr format. 
