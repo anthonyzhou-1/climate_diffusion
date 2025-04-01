@@ -147,7 +147,7 @@ class TrainModule(L.LightningModule):
         # multilevel_feat in shape [b, t, nlat, nlon, num_levels, num_multilevel_feats]
         # features are normalized
 
-        surface_var_names = SURFACE_FEATURES, 
+        surface_var_names = SURFACE_FEATURES 
         multilevel_var_names = MULTI_LEVEL_FEATURES
 
         surface_init = surface_feat_traj[:, 0] # b nlat nlon c
