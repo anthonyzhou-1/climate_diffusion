@@ -43,7 +43,7 @@ def main(config):
                         normalizer=datamodule.normalizer)
 
     trainer = L.Trainer(devices = config.devices,
-                        accelerator = config.training.accelerator,
+                        accelerator = config.accelerator,
                         check_val_every_n_epoch = config.training.check_val_every_n_epoch,
                         max_epochs = config.training.max_epochs,
                         default_root_dir = config.log_dir,

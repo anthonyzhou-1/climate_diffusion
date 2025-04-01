@@ -115,7 +115,7 @@ class PLASIMData(Dataset):
 
         self.data_path = data_path  # a zarr file
         # open the data
-        dat = xr.open_dataset(self.data_path, engine='zarr')
+        dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True)
 
         self.features_names = surface_vars + multi_level_vars
         self.constant_names = constant_names
