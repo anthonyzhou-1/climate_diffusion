@@ -1,10 +1,10 @@
 # Default imports
 from datetime import datetime
-import torch
+import argparse
 import os 
 
 # Custom imports
-from common.utils import save_yaml, parse_args_and_config
+from common.utils import save_yaml, get_yaml, dict2namespace
 from lightning.pytorch.callbacks import LearningRateMonitor
 from dataset.datamodule import ClimateDataModule
 from modules.train_module import TrainModule
@@ -61,5 +61,12 @@ def main(config):
                 datamodule=datamodule)
 
 if __name__ == "__main__":
-    args, config = parse_args_and_config()
+    parser = argparse.ArgumentParser(description='Train a model')
+    parser.add_argument("--config", default=None)
+    parser.add_argument('--devices', nargs='+', help='<Required> Set flag', default=[])
+    args = parser.parse_args()
+    config = get_yaml(args.config)
+    config = dict2namespace(config)
+    if len(args.devices) > 0:
+        config.devices = args.devices
     main(config)

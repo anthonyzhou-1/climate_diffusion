@@ -8,20 +8,6 @@ from matplotlib import pyplot as plt
 import matplotlib
 from mpl_toolkits.axes_grid1 import ImageGrid
 
-def parse_args_and_config():
-    parser = argparse.ArgumentParser(description=globals()['__doc__'])
-    parser.add_argument('--config', type=str, required=True, help='Path to the config file')
-    parser.add_argument('--seed', type=int, default=42, help='Global seed')
-    parser.add_argument('--devices', nargs='+', help='<Required> Set flag', default=[])
-    args = parser.parse_args()
-
-    # parse config file
-    with open(args.config, 'r') as f:
-        config = yaml.safe_load(f)
-    config = dict2namespace(config)
-    # copy the config file to the log_dir
-    return args, config
-
 def plot_result_2d(y, y_pred, filename,
                    num_vis=3, num_t=6, cmap='twilight'):
     matplotlib.use('Agg')
