@@ -97,10 +97,10 @@ class TrainModule(L.LightningModule):
 
             plot_result_2d(t2m_pred,
                             t2m_target,
-                            f'{self.config.log_dir}/results/val_t2m_{self.current_epoch}.png')
+                            f'{self.config.log_dir}/val_t2m_{self.current_epoch}.png')
             plot_result_2d(z500_pred,
                             z500_target,
-                            f'{self.config.log_dir}/results/val_z500_{self.current_epoch}.png')
+                            f'{self.config.log_dir}/val_z500_{self.current_epoch}.png')
         
         if eval:
             return loss_dict, pred_feat_dict, target_feat_dict
