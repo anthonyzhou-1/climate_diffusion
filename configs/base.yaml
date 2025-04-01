@@ -1,5 +1,5 @@
-log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
-#log_dir: logs
+#log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
+log_dir: logs
 project_name: PLASIM_flow_matching
 devices: [0]
 accelerator: gpu
@@ -25,16 +25,16 @@ model:
 
 data:
     # perlmutter paths
-    train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_12-111.zarr
-    val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_11.zarr
-    norm_stats_path: /pscratch/sd/a/ayz2/PLASIM/processed/norm_stats.npz
-    boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
+    #train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_12-111.zarr
+    #val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_11.zarr
+    #norm_stats_path: /pscratch/sd/a/ayz2/PLASIM/processed/norm_stats.npz
+    #boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
 
     # local paths
-    #train_data_path: /data/data/zijie_data/processed_weather_data/combined_first_20_years.zarr
-    #val_data_path: /data/data/zijie_data/processed_weather_data/combined_first_20_years.zarr
-    #norm_stats_path: /data/data/zijie_data/processed_weather_data/norm_stats.npz
-    #boundary_path: /data/PLASIM/boundary_vars/boundary_vars.h5
+    train_data_path: /data/data/zijie_data/processed_weather_data/combined_first_20_years.zarr
+    val_data_path: /data/data/zijie_data/processed_weather_data/combined_first_20_years.zarr
+    norm_stats_path: /data/data/zijie_data/processed_weather_data/norm_stats.npz
+    boundary_path: /data/PLASIM/boundary_vars/boundary_vars.h5
 
     training_nsteps: 1 # train on next-step prediction
     val_nsteps: 40 # valid up to 40 steps
