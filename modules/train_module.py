@@ -105,12 +105,12 @@ class TrainModule(L.LightningModule):
         if eval:
             return loss_dict, pred_feat_dict, target_feat_dict
         
-        # calculate the mean loss
-        t2m_loss = torch.cat(loss_dict['tas'], dim=0).mean(0) # surface temp
-        z500_loss = torch.cat(loss_dict['zg'], dim=0)[..., 7].mean(0) # geopotential at level=7
-        u10m_loss = torch.cat(loss_dict['ua'], dim=0)[..., 0].mean(0) # u wind at level=0
-        t850_loss = torch.cat(loss_dict['ta'], dim=0)[..., 10].mean(0) # temp at level=10
-
+        # calculate the mean loss, shape b t for each key, b t l for multilevel keys
+        t2m_loss = loss_dict['tas'].mean(0) # surface temp, mean across batch dim
+        z500_loss = loss_dict['zg'][..., 7].mean(0) # geopotential at level=7
+        u10m_loss = loss_dict['ua'][..., 0].mean(0) # u wind at level=0
+        t850_loss = loss_dict['ta'][..., 10].mean(0) # temp at level=10
+        
         self.log('val_t2m_72', t2m_loss[11].item(), on_step=False, on_epoch=True)
         self.log('val_t2m_120', t2m_loss[19].item(), on_step=False, on_epoch=True)
         self.log('val_t2m_240', t2m_loss[39].item(), on_step=False, on_epoch=True)
@@ -186,7 +186,7 @@ class TrainModule(L.LightningModule):
                         latitude_weighted_rmse(pred_feat_dict[k], target_feat_dict[k],
                                                 with_poles=self.config.data.with_poles,
                                                 longitude_resolution=self.config.data.nlon,
-                                                ) for k in pred_feat_dict.keys()}
+                                                ) for k in pred_feat_dict.keys()} # b t for each key
         if not return_pred:
             return loss_dict
         else:
