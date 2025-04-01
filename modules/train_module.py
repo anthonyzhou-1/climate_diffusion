@@ -109,7 +109,7 @@ class TrainModule(L.LightningModule):
         t2m_loss = loss_dict['tas'].mean(0) # surface temp, mean across batch dim
         z500_loss = loss_dict['zg'][..., 7].mean(0) # geopotential at level=7
         u10m_loss = loss_dict['ua'][..., 0].mean(0) # u wind at level=0
-        t850_loss = loss_dict['ta'][..., 10].mean(0) # temp at level=10
+        t850_loss = loss_dict['ta'][..., -1].mean(0) # temp at level=10
         
         self.log('val_t2m_72', t2m_loss[11].item(), on_step=False, on_epoch=True)
         self.log('val_t2m_120', t2m_loss[19].item(), on_step=False, on_epoch=True)
