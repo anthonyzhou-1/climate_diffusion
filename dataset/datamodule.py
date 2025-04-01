@@ -56,13 +56,14 @@ class ClimateDataModule(L.LightningDataModule):
 
     def train_dataloader(self):
         self.pin_memory = False if self.num_workers == 0 else True
+        self.persistent_workers = True if self.num_workers > 0 else False
         return DataLoader(self.train_dataset, 
                           batch_size=self.train_batch_size, 
                           shuffle=True, 
                           num_workers=self.num_workers, 
                           pin_memory=self.pin_memory,
                           drop_last=True,
-                          persistent_workers=True)
+                          persistent_workers=self.persistent_workers)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, 
