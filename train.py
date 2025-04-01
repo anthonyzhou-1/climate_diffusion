@@ -52,7 +52,8 @@ def main(config):
                         callbacks=[checkpoint_callback, lr_monitor],
                         logger=wandb_logger,
                         gradient_clip_val=config.training.gradient_clip_val,
-                        accumulate_grad_batches=config.training.gradient_accumulation_steps,)
+                        accumulate_grad_batches=config.training.gradient_accumulation_steps,
+                        num_sanity_val_steps=0)
     
     if config.training.checkpoint is not None:
         trainer.fit(model=model,
