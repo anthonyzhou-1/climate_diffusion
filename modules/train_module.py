@@ -39,6 +39,7 @@ class TrainModule(L.LightningModule):
         self.normalizer = normalizer
         self.model = ClimaDIT(config)
         self.lr = config.training.lr
+        self.config = config
 
     def forward(self, u, sigma_t, scalar_params, grid_params):
         return self.model(u, sigma_t, scalar_params, grid_params)
@@ -61,7 +62,7 @@ class TrainModule(L.LightningModule):
 
     def validation_step(self, batch, batch_idx, eval=False):
         surface_feat, multi_level_feat, constants, yearly_constants, \
-            day_of_year, hour_of_day = batch    # did not use cond_param for now
+            day_of_year, hour_of_day = batch    
 
         loss_dict, pred_feat_dict, target_feat_dict = self.predict(
                                                         self.model,
@@ -125,13 +126,6 @@ class TrainModule(L.LightningModule):
         self.log('t850_72', t850_loss[11].item(), on_step=False, on_epoch=True)
         self.log('t850_120', t850_loss[19].item(), on_step=False, on_epoch=True)
         self.log('t850_240', t850_loss[39].item(), on_step=False, on_epoch=True)
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.8)
-
-        return [optimizer], [scheduler]
-    
 
     @torch.no_grad()
     def predict(self, model,
@@ -197,3 +191,9 @@ class TrainModule(L.LightningModule):
             return loss_dict
         else:
             return loss_dict, pred_feat_dict, target_feat_dict
+    
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.8)
+
+        return [optimizer], [scheduler]
