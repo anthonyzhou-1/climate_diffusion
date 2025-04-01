@@ -70,5 +70,5 @@ if __name__ == "__main__":
     config = get_yaml(args.config)
     config = dict2namespace(config)
     if len(args.devices) > 0:
-        config.devices = args.devices
+        config.devices = [int(device) for device in args.devices]
     main(config)
