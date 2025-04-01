@@ -8,6 +8,9 @@ class ClimateDataModule(L.LightningDataModule):
         
         super().__init__()
         self.config = config
+        self.num_workers = self.config.training.num_workers
+        self.train_batch_size = self.config.training.batch_size_per_device
+        self.val_batch_size = self.config.training.eval_batch_size
 
         self.train_dataset = PLASIMData(data_path=self.config.data.train_data_path,
                                     norm_stats_path=self.config.data.norm_stats_path,
@@ -54,7 +57,7 @@ class ClimateDataModule(L.LightningDataModule):
     def train_dataloader(self):
         self.pin_memory = False if self.num_workers == 0 else True
         return DataLoader(self.train_dataset, 
-                          batch_size=self.batch_size, 
+                          batch_size=self.train_batch_size, 
                           shuffle=True, 
                           num_workers=self.num_workers, 
                           pin_memory=self.pin_memory,
@@ -63,7 +66,7 @@ class ClimateDataModule(L.LightningDataModule):
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, 
-                          batch_size=self.batch_size, 
+                          batch_size=self.val_batch_size, 
                           shuffle=False, 
                           num_workers=self.num_workers,
                           drop_last=False)

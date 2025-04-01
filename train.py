@@ -2,6 +2,7 @@
 from datetime import datetime
 import argparse
 import os 
+import torch 
 
 # Custom imports
 from common.utils import save_yaml, get_yaml, dict2namespace
@@ -16,6 +17,7 @@ from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 def main(config):
+    torch.set_float32_matmul_precision('high') # to use tensor cores if available
     seed = config.seed
     now = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     seed_everything(seed)
