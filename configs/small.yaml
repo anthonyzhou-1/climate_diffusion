@@ -10,18 +10,17 @@ model:
     num_fa_blocks: 8
     num_blocks: 8
     patch_size: 2
-    cond_dim: 256
+    cond_dim: 512
     num_cond: 2 # day of year, hour of day
     num_constants: 6 # lsm sg z0; rsdt sic sst
-    dim: 256
+    dim: 512
     num_heads: 8
     in_dim: 116  # 5 multilevel vars * 10 levels = 50 + 8 surface features = 58 * 2 (past timestep + noise) = 116
     out_dim: 58 # only predict noise 
-    proj_bottleneck_dim: 256
+    proj_bottleneck_dim: 512
     kernel_expansion_ratio: 1.0
     depth_dropout: 0.0
     scale_by_sigma: True
-    patch_size: 2
     l_max: 20
 
 data:
