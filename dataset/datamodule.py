@@ -1,6 +1,6 @@
 import lightning as L
 from torch.utils.data import DataLoader
-from dataset.plasim import PLASIMData, SURFACE_FEATURES, MULTI_LEVEL_FEATURES, CONSTANTS_FEATURES, YEARLY_FEATURES
+from dataset.plasim import PLASIMData
 
 class ClimateDataModule(L.LightningDataModule):
     def __init__(self,
@@ -13,29 +13,21 @@ class ClimateDataModule(L.LightningDataModule):
         self.val_batch_size = self.config.training.eval_batch_size
 
         self.train_dataset = PLASIMData(data_path=self.config.data.train_data_path,
-                                    norm_stats_path=self.config.data.norm_stats_path,
-                                    boundary_path=self.config.data.boundary_path,
-                                    surface_vars=SURFACE_FEATURES,
-                                    multi_level_vars=MULTI_LEVEL_FEATURES,
-                                    constant_names=CONSTANTS_FEATURES,
-                                    yearly_names=YEARLY_FEATURES,
-                                    nsteps=self.config.data.training_nsteps,   
-                                    split='train',
-                                    )
+                                        norm_stats_path=self.config.data.norm_stats_path,
+                                        boundary_path=self.config.data.boundary_path,
+                                        time_path=self.config.train_times_path,
+                                        nsteps=self.config.data.training_nsteps,   
+                                        split='train')
         
         self.val_dataset = PLASIMData(data_path=self.config.data.val_data_path,
-                                norm_stats_path=self.config.data.norm_stats_path,
-                                boundary_path=self.config.data.boundary_path,
-                                surface_vars=SURFACE_FEATURES,
-                                multi_level_vars=MULTI_LEVEL_FEATURES,
-                                constant_names=CONSTANTS_FEATURES,
-                                yearly_names=YEARLY_FEATURES,
-                                nsteps=self.config.data.val_nsteps,
-                                split="valid",
-                                load_into_memory=True)
+                                    norm_stats_path=self.config.data.norm_stats_path,
+                                    boundary_path=self.config.data.boundary_path,
+                                    time_path=self.config.val_times_path,
+                                    nsteps=self.config.data.val_nsteps,
+                                    split="valid",
+                                    load_into_memory=True)
         
         self.normalizer = self.train_dataset.normalizer
-
 
     def prepare_data(self):
         # download, split, etc...
