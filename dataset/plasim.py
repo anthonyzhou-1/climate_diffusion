@@ -2,9 +2,9 @@ import torch
 import numpy as np
 from einops import rearrange
 from torch.utils.data import Dataset
-import xarray as xr
 import pandas as pd
 import h5py as h5f
+import pickle 
 import cftime
 
 # defined on the surface of earth 
@@ -44,78 +44,101 @@ YEARLY_FEATURES = [
 ]
 
 class Normalizer:
-    def __init__(self, stat_dict):
+    def __init__(self, stat_path):
         # stat_dict: {feature_name: (mean, std)}
-        self.stat_dict = {k: (torch.from_numpy(v[0]).float(), torch.from_numpy(v[1]).float()) if isinstance(v[0], np.ndarray)
-        else (torch.tensor(v[0]).float(), torch.tensor(v[1]).float())
-                          for k, v in stat_dict.items()}
-        # take only first 10 levels of geopotential
-        self.stat_dict['zg'] = (self.stat_dict['zg'][0][..., :10], self.stat_dict['zg'][1][..., :10])
+        surface_stats, multilevel_stats = self.load_norm_stats(stat_path)
+        self.surface_stats = surface_stats  # shape (surface_channels, 2)
+        self.multilevel_stats = multilevel_stats # shape (nlevels, multi_level_channels, 2)
 
+        self.surface_means = torch.tensor(surface_stats[:, 0], dtype=torch.float32) # shape (surface_channels)
+        self.surface_means = rearrange(self.surface_means, 'c -> 1 1 1 c') 
+
+        self.surface_stds = torch.tensor(surface_stats[:, 1], dtype=torch.float32) # shape (surface_channels)
+        self.surface_stds = rearrange(self.surface_stds, 'c -> 1 1 1 c') 
+
+        self.multilevel_means = torch.tensor(multilevel_stats[:, :, 0], dtype=torch.float32) # shape (nlevels, multi_level_channels)
+        self.multilevel_means = rearrange(self.multilevel_means, 'n c -> 1 1 1 n c')
+        self.multilevel_stds = torch.tensor(multilevel_stats[:, :, 1], dtype=torch.float32) # shape (nlevels, multi_level_channels) 
+        self.multilevel_stds = rearrange(self.multilevel_stds, 'n c -> 1 1 1 n c')
+
+    def load_norm_stats(self, norm_stat_path):
+        surface_stats = []
+        multilevel_stats = []
+        with np.load(norm_stat_path, allow_pickle=True) as f:
+            normalize_mean, normalize_std = f['normalize_mean'].item(), f['normalize_std'].item()
+            for feature_name in self.features_names:
+                assert feature_name in normalize_mean.keys(), f'{feature_name} not in {norm_stat_path}'
+                mean = normalize_mean[feature_name] 
+                std = normalize_std[feature_name]
+
+                if feature_name in SURFACE_FEATURES:
+                    surface_stats.append([mean, std])
+                elif feature_name in MULTI_LEVEL_FEATURES:
+                    if len(mean) > 10: # truncate to first 10 levels
+                        mean = mean[:10]
+                        std = std[:10]
+                    multilevel_stats.append([mean, std])
+        # shape (8, 2), (10, 5, 2)
+        return np.array(surface_stats), np.array(multilevel_stats).transpose(2, 0, 1)
+    
     @torch.no_grad()
-    def normalize(self, out_dict):
-        for k, v in out_dict.items():
-            mean, std = self.stat_dict[k]
-            mean, std = mean.to(v.device), std.to(v.device)
-            if len(v.shape) == 3:
-                out_dict[k] = (v - mean.view(1, 1, 1)) / std.view(1, 1, 1)
-            elif len(v.shape) == 4:
-                out_dict[k] = (v - mean.view(1, 1, 1, -1)) / std.view(1, 1, 1, -1)
-            else:
-                raise ValueError(f'Invalid shape {v.shape}')
+    def normalize(self, surface_feat, multilevel_feat):
+        # surface feat in shape (nt, nlat, nlon, surface_channels)
+        # multilevel feat in shape (nt, nlat, nlon, nlevel, multi_level_channels)
 
-    def denormalize(self, out_dict):
-        for k, v in out_dict.items():
-            mean, std = self.stat_dict[k]
-            mean, std = mean.to(v.device), std.to(v.device)
-            if len(v.shape) == 3:   # t nlat nlon
-                out_dict[k] = v * std.view(1, 1, 1) + mean.view(1, 1, 1)
-            elif len(v.shape) == 4:         # t nlat nlon nlevels
-                out_dict[k] = v * std.view(1, 1, 1, -1) + mean.view(1, 1, 1, -1)
-            else:
-                raise ValueError(f'Invalid shape {v.shape}')
+        surface_feat = (surface_feat - self.surface_means) / self.surface_stds
+        multilevel_feat = (multilevel_feat - self.multilevel_means) / self.multilevel_stds
 
-    def batch_denormalize(self, out_dict):
-        for k, v in out_dict.items():
-            mean, std = self.stat_dict[k]
-            mean, std = mean.to(v.device), std.to(v.device)
-            if len(v.shape) == 4:    # b t nlat nlon
-                out_dict[k] = v * std.view(1, 1, 1, 1) + mean.view(1, 1, 1, 1)
-            elif len(v.shape) == 5:     # b t nlat nlon nlevels
-                out_dict[k] = v * std.view(1, 1, 1, 1, -1) + mean.view(1, 1, 1, 1, -1)
-            else:
-                raise ValueError(f'Invalid shape {v.shape}')
+        return surface_feat, multilevel_feat
 
-    def batch_normalize(self, out_dict):
-        for k, v in out_dict.items():
-            mean, std = self.stat_dict[k]
-            mean, std = mean.to(v.device), std.to(v.device)
-            if len(v.shape) == 4:    # b t nlat nlon
-                out_dict[k] = (v - mean.view(1, 1, 1, 1)) / std.view(1, 1, 1, 1)
-            elif len(v.shape) == 5:     # b t nlat nlon nlevels
-                out_dict[k] = (v - mean.view(1, 1, 1, 1, -1)) / std.view(1, 1, 1, 1, -1)
-            else:
-                raise ValueError(f'Invalid shape {v.shape}')
+    def denormalize(self, surface_feat, multilevel_feat):
+        # surface feat in shape (nt, nlat, nlon, surface_channels)
+        # multilevel feat in shape (nt, nlat, nlon, nlevel, multi_level_channels)
 
+        surface_feat = surface_feat * self.surface_stds + self.surface_means
+        multilevel_feat = multilevel_feat * self.multilevel_stds + self.multilevel_means
+
+        return surface_feat, multilevel_feat
+    
+    def batch_normalize(self, surface_feat, multilevel_feat):
+        # surface feat in shape (b, nt, nlat, nlon, surface_channels)
+        # multilevel feat in shape (b, nt, nlat, nlon, nlevel, multi_level_channels)     
+
+        surface_feat = (surface_feat - self.surface_means.unsqueeze(0)) / self.surface_stds.unsqueeze(0)
+        multilevel_feat = (multilevel_feat - self.multilevel_means.unsqueeze(0)) / self.multilevel_stds.unsqueeze(0)
+
+        return surface_feat, multilevel_feat  
+
+    def batch_denormalize(self, surface_feat, multilevel_feat):
+        # surface feat in shape (b, nt, nlat, nlon, surface_channels)
+        # multilevel feat in shape (b, nt, nlat, nlon, nlevel, multi_level_channels)
+
+        surface_feat = surface_feat * self.surface_stds.unsqueeze(0) + self.surface_means.unsqueeze(0)
+        multilevel_feat = multilevel_feat * self.multilevel_stds.unsqueeze(0) + self.multilevel_means.unsqueeze(0)
+
+        return surface_feat, multilevel_feat
+        
 class PLASIMData(Dataset):
     def __init__(self,
                  data_path,
                  norm_stats_path,
                  boundary_path,
-                 surface_vars,
-                 multi_level_vars,
-                 constant_names,
-                 yearly_names,
+                 time_path,
+                 split="train",
+                 surface_vars=SURFACE_FEATURES,
+                 multi_level_vars=MULTI_LEVEL_FEATURES,
+                 constant_names=CONSTANTS_FEATURES,
+                 yearly_names=YEARLY_FEATURES,
                  normalize_feature=True,
                  interval=1,  # interval=1 is equal to 6 hours
                  nsteps=2,   # spit out how many consecutive future sequences
                  load_into_memory=False,
                  output_timecoords=False,
-                 chunk_range = [0, -1]
                  ):
 
         self.data_path = data_path  # a zarr file
-        dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) # doesn't matter for val since loading entire array into memory
+        self.file = h5f.File(self.data_path, 'r') # has keys of 'split'
+        self.data = self.file[split] # has keys of 'surface', 'multilevel', 'lat', 'lon', 'hour', 'day'
         self.features_names = surface_vars + multi_level_vars
         self.constant_names = constant_names
         self.yearly_names = yearly_names
@@ -123,7 +146,7 @@ class PLASIMData(Dataset):
         self.output_timecoords = output_timecoords
 
         # this assumes that the normalization statistics are stored in the same directory as the data
-        self.normalizer = Normalizer(self.load_norm_stats(norm_stats_path))
+        self.normalizer = Normalizer(norm_stats_path)
 
         self.interval = interval
         self.nsteps = nsteps
@@ -131,47 +154,36 @@ class PLASIMData(Dataset):
         # load the constants, in shape (nlat, nlon, nconstants) or (ntime, nlat, nlon, nyearly)
         self.constants, self.yearly_constants, self.leap_yearly_constants = self.load_constants(boundary_path)
 
-        #print('Surface variables:', surface_vars)
-        #print('Multi-level variables:', multi_level_vars)
-        #print('Constant variables:', constant_names)
-        #print('Yearly variables:', yearly_names)
         self.surface_vars = surface_vars
         self.multi_level_vars = multi_level_vars
 
         # get the time stamps
-        time_coords = dat.time.values # array of cftime objects
-        start_time_coords = time_coords
+        with open(time_path, 'rb') as f:
+            self.time_coords = pickle.load(f) # array of cftime objects
+
         # filter out those will be out of bound
         if nsteps > 0:
-            start_time_coords = start_time_coords[:-(interval * nsteps)]
-        else:
-            start_time_coords = start_time_coords[chunk_range[0]:chunk_range[-1]]
+            self.time_coords_filtered = self.time_coords[:-(interval * nsteps)]
 
-        time_coords = start_time_coords
-        # keep in range data
-        self.dat = dat.sel(time=time_coords)
         if load_into_memory:
-            self.dat.load()
-        self.time_coords = time_coords
-        self.start_time_coords = start_time_coords
+            self.surface = torch.from_numpy(self.data['surface'][:])
+            self.multilevel = torch.from_numpy(self.data['multilevel'][:])
+            self.hour = torch.from_numpy(self.data['hour'][:])
+            self.day = torch.from_numpy(self.data['day'][:])
+        else:
+            self.surface = self.data['surface'] # t nlat nlon nsurface_channels
+            self.multilevel = self.data['multilevel'] # t nlat nlon nlevels nmulti_channels
+            self.hour = self.data['hour'] # t
+            self.day = self.data['day'] # t
 
-        # if we treat this as initial value problem, how many initial values are there?
-        self.nstamps = len(start_time_coords)
+        self.nstamps = len(self.time_coords_filtered)
+        print(f"Loaded {self.nstamps} time stamps for {split} split, from {self.time_coords[0].strftime()} to {self.time_coords[-1].strftime()}")
 
     def __len__(self):
         return self.nstamps
 
     def get_var_names(self):
         return self.surface_vars, self.multi_level_vars, self.constant_names, self.yearly_names
-
-    def load_norm_stats(self, norm_stat_path):
-        stat_dict = {}
-        with np.load(norm_stat_path, allow_pickle=True) as f:
-            normalize_mean, normalize_std = f['normalize_mean'].item(), f['normalize_std'].item()
-            for feature_name in self.features_names:
-                assert feature_name in normalize_mean.keys(), f'{feature_name} not in {norm_stat_path}'
-                stat_dict[feature_name] = (normalize_mean[feature_name], normalize_std[feature_name])
-        return stat_dict
     
     def load_constants(self, boundary_path):
         # load constants into local memory. About 300 Mb
@@ -210,60 +222,24 @@ class PLASIMData(Dataset):
     def __getitem__(self, idx):
         # fetch time coord first
         start_time_idx = idx
-        start_time = self.start_time_coords[start_time_idx]
-        # find start time coord in time coords
-        time_coord = self.time_coords[start_time_idx: start_time_idx + self.interval * (self.nsteps + 1): self.interval]
-        assert time_coord[0] == start_time, f'{time_coord[0]} != {start_time}'
+        end_time_idx =  start_time_idx + self.interval * (self.nsteps + 1)
+        idx_range = range(start_time_idx, end_time_idx, self.interval)
+        time_coord = self.time_coords[idx_range]
 
-        dat_slice = self.dat.sel(time=time_coord) # time, nlat, nlon, etc. 
-        # get the feature data
-        features = dat_slice[self.features_names] # time, nlat, nlon, etc.
-
-        # prepare the feature dict
-        feature_dict = {k: rearrange(torch.from_numpy(v.values.T), 'nlon nlat nlevel nt -> nt nlat nlon nlevel')
-                        if k in self.multi_level_vars else
-                            rearrange(torch.from_numpy(v.values.T), 'nlon nlat nt -> nt nlat nlon')
-                        for k, v in features.items()}
-        
-        # take 1st 10 levels of geopotential
-        feature_dict['zg'] = feature_dict['zg'][..., :10]
+        surface_feat = self.surface[idx_range] # (nsteps+1, nlat, nlon, nsurface_channels)
+        multilevel_feat = self.multilevel[idx_range] # (nsteps+1, nlat, nlon, nlevels, nmulti_channels)
+        day_of_year = self.day[idx_range] # (nsteps+1)
+        hour_of_day = self.hour[idx_range]
 
         # normalize the feature
         if self.normalize_feature:
-            self.normalizer.normalize(feature_dict)
-
-        # pack the feature into surface and upper air
-        surface_feat = []
-        multi_level_feat = []
-
-        for k, v in feature_dict.items():
-            if k in self.surface_vars:
-                surface_feat.append(v)
-            elif k in self.multi_level_vars:
-                multi_level_feat.append(v)
-            else:
-                raise ValueError(f'Unknown feature {k}')
-
-        # stack the surface features
-        surface_feat = torch.stack(surface_feat, dim=-1) # shape (nt, nlat, nlon, surface_channels)
-        multi_level_feat = torch.stack(multi_level_feat, dim=-1) # shape (nt, nlat, nlon, nlevel, multi_level_channels)
+            self.normalizer.normalize(surface_feat, multilevel_feat)
 
         # get temporal coords
         timestamp = [pd.Timestamp(t.strftime()) for t in time_coord]
 
         # check if all time coords are during a leap year
         leap_years = [cftime.is_leap_year(time_coord_i.year, 'proleptic_gregorian') for time_coord_i in time_coord]
-
-        # Extract day of the year and hour of the day
-        day_of_year = []
-        for i in range(len(time_coord)):
-            if leap_years[i]:
-                num_days = 366
-            else:
-                num_days = 365
-            day_of_year.append(min(timestamp[i].day_of_year / num_days, 1))
-
-        hour_of_day = [t.hour / 24 for t in timestamp]
         
         yearly_constants = []
         for i in range(len(time_coord)):
@@ -279,11 +255,11 @@ class PLASIMData(Dataset):
         yearly_constants = torch.stack(yearly_constants, dim=0) # (nt, nlat, nlon, nyearly)
 
         if not self.output_timecoords:
-            return surface_feat, multi_level_feat,\
-                   self.constants.clone(), yearly_constants, torch.Tensor(day_of_year), torch.Tensor(hour_of_day)
+            return surface_feat, multilevel_feat,\
+                   self.constants.clone(), yearly_constants, day_of_year, hour_of_day
         else:
-            return surface_feat, multi_level_feat,\
-                   self.constants.clone(), yearly_constants, torch.Tensor(day_of_year), torch.Tensor(hour_of_day), timestamp
+            return surface_feat, multilevel_feat,\
+                   self.constants.clone(), yearly_constants, day_of_year, hour_of_day, timestamp
 
 
 
