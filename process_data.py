@@ -58,7 +58,7 @@ nsurface_channels = 8
 nlevels = 10
 nmulti_channels = 5
 
-path = f"/data/PLASIM/PLASIM_{split}_{num_samples}.h5"
+path = f"/pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_{split}_{num_samples}.h5"
 
 # check if path exists
 if os.path.exists(path):
@@ -96,11 +96,11 @@ for j in tqdm(range(num_iters)):
         # reload dset
         chunk_start = chunk_start + chunk_size
         chunk_end = chunk_end + chunk_size
-        print(f"Reloading dset with chunk_start={chunk_start} and chunk_end={chunk_end}")
-        dset = PLASIMData(data_path="/data/PLASIM/PLASIM/PLASIM_train_12-111.zarr",
-                    norm_stats_path="/data/PLASIM/PLASIM/norm_stats.npz",
+        #print(f"Reloading dset with chunk_start={chunk_start} and chunk_end={chunk_end}")
+        dset = PLASIMData(data_path=train_path,
+                    norm_stats_path=norm_stats_path,
                     surface_vars=SURFACE_FEATURES,
-                    boundary_path="/data/PLASIM/PLASIM/boundary_vars.h5",
+                    boundary_path=boundary_path,
                     multi_level_vars=MULTI_LEVEL_FEATURES,
                     constant_names=CONSTANTS_FEATURES,
                     yearly_names=YEARLY_FEATURES,
@@ -113,10 +113,10 @@ h5f.close()
 
 # reload entire dset to dump all time coords
 if split == "train":
-    dset = PLASIMData(data_path="/data/PLASIM/PLASIM/PLASIM_train_12-111.zarr",
-                      norm_stats_path="/data/PLASIM/PLASIM/norm_stats.npz",
+    dset = PLASIMData(data_path=train_path,
+                      norm_stats_path=norm_stats_path,
                       surface_vars=SURFACE_FEATURES,
-                      boundary_path="/data/PLASIM/PLASIM/boundary_vars.h5",
+                      boundary_path=boundary_path,
                       multi_level_vars=MULTI_LEVEL_FEATURES,
                       constant_names=CONSTANTS_FEATURES,
                       yearly_names=YEARLY_FEATURES,
@@ -125,10 +125,10 @@ if split == "train":
                       load_into_memory=False,
                       chunk_range=[0, num_samples])
 elif split == 'valid':
-    dset = PLASIMData(data_path="/data/PLASIM/PLASIM/PLASIM_valid_11.zarr",
-                    norm_stats_path="/data/PLASIM/PLASIM/norm_stats.npz",
+    dset = PLASIMData(data_path=valid_path,
+                    norm_stats_path=norm_stats_path,
                     surface_vars=SURFACE_FEATURES,
-                    boundary_path="/data/PLASIM/PLASIM/boundary_vars.h5",
+                    boundary_path=boundary_path,
                     multi_level_vars=MULTI_LEVEL_FEATURES,
                     constant_names=CONSTANTS_FEATURES,
                     yearly_names=YEARLY_FEATURES,
@@ -138,7 +138,7 @@ elif split == 'valid':
                     chunk_range=[0, num_samples])
     
 dat = dset.dat
-pickle_path = f"/data/PLASIM/PLASIM_{split}_{num_samples}_times.pkl"
+pickle_path = f"/pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_{split}_{num_samples}_times.pkl"
 with open(pickle_path, 'wb') as handle:
     pickle.dump(dat.time.load(), handle)
 
