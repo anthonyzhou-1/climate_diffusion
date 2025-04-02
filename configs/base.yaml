@@ -26,14 +26,18 @@ model:
 
 data:
     # perlmutter paths
-    #train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_12-111.zarr
-    #val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_11.zarr
+    #train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096.h5
+    #val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460.h5
+    #train_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096_times.pkl
+    #val_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460_times.pkl
     #norm_stats_path: /pscratch/sd/a/ayz2/PLASIM/processed/norm_stats.npz
     #boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
 
     # local paths
-    train_data_path: /data/PLASIM/PLASIM/PLASIM_train_12-111.zarr
-    val_data_path: /data/PLASIM/PLASIM/PLASIM_valid_11.zarr
+    train_data_path: /data/PLASIM/PLASIM_train_10000.h5
+    val_data_path: /data/PLASIM/PLASIM_valid_1460.h5
+    train_times_path: /data/PLASIM/PLASIM_train_10000_times.pkl
+    val_times_path: /data/PLASIM/PLASIM_valid_1460_times.pkl
     norm_stats_path: /data/PLASIM/PLASIM/norm_stats.npz
     boundary_path: /data/PLASIM/PLASIM/boundary_vars.h5
 
@@ -50,9 +54,9 @@ training:
     beta1: 0.9
     beta2: 0.95
     
-    check_val_every_n_epoch: 10
-    log_every_n_steps: 64
-    max_epochs: 250
+    check_val_every_n_epoch: 1
+    log_every_n_steps: 100
+    max_epochs: 10
     checkpoint: null
 
     batch_size_per_device: 4

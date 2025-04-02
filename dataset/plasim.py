@@ -9,14 +9,14 @@ import cftime
 
 # defined on the surface of earth 
 SURFACE_FEATURES = [
-    'evap', # lwe_of_water_evaporation
-    "mrro", # surface_runoff
-    "mrso", # lwe_of_soil_moisture_content
+    'evap', # lwe_of_water_evaporation, NaN
+    "mrro", # surface_runoff, NaN
+    "mrso", # lwe_of_soil_moisture_content, NaN
     "pl", # log_surface_pressure
     "pr_12h", # 12-hour accumulated precipitation
     "pr_6h", # 6-hour accumulated precipitation
     "tas", # air_temperature_2m
-    "ts", # surface_temperature
+    "ts", # surface_temperature, NaN 
 ]
 
 # defined on many levels of the atmosphere
@@ -30,7 +30,7 @@ MULTI_LEVEL_FEATURES = [
 
 # constant for all time
 CONSTANTS_FEATURES = [
-    'lsm', # land_binary_mask
+    'lsm', # land_binary_mask # nans
     'sg', # surface_geopotential
     'z0', # surface_roughness_length
 ]
@@ -39,13 +39,14 @@ CONSTANTS_FEATURES = [
 # Also defined for leap years. Has an extra day, which is 4 more intervals
 YEARLY_FEATURES = [
     'rsdt', # TOA (Top of Atmosphere) Incident Shortwave Radiation 
-    'sic', # sea_ice_cover
-    'sst', # surface_temperature
+    'sic', # sea_ice_cover # nans
+    'sst', # surface_temperature # nans
 ]
 
 class Normalizer:
-    def __init__(self, stat_path):
+    def __init__(self, stat_path, features_names=SURFACE_FEATURES + MULTI_LEVEL_FEATURES):
         # stat_dict: {feature_name: (mean, std)}
+        self.features_names = features_names
         surface_stats, multilevel_stats = self.load_norm_stats(stat_path)
         self.surface_stats = surface_stats  # shape (surface_channels, 2)
         self.multilevel_stats = multilevel_stats # shape (nlevels, multi_level_channels, 2)
@@ -60,6 +61,8 @@ class Normalizer:
         self.multilevel_means = rearrange(self.multilevel_means, 'n c -> 1 1 1 n c')
         self.multilevel_stds = torch.tensor(multilevel_stats[:, :, 1], dtype=torch.float32) # shape (nlevels, multi_level_channels) 
         self.multilevel_stds = rearrange(self.multilevel_stds, 'n c -> 1 1 1 n c')
+
+        self.surface_nans = [0, 1, 2, 7]
 
     def load_norm_stats(self, norm_stat_path):
         surface_stats = []
@@ -85,6 +88,10 @@ class Normalizer:
     def normalize(self, surface_feat, multilevel_feat):
         # surface feat in shape (nt, nlat, nlon, surface_channels)
         # multilevel feat in shape (nt, nlat, nlon, nlevel, multi_level_channels)
+
+        for nan_idx in self.surface_nans:
+            # replace nan w/ mean of the feature
+            surface_feat[..., nan_idx] = torch.nan_to_num(surface_feat[..., nan_idx], nan=self.surface_means[..., nan_idx].item())
 
         surface_feat = (surface_feat - self.surface_means) / self.surface_stds
         multilevel_feat = (multilevel_feat - self.multilevel_means) / self.multilevel_stds
@@ -146,7 +153,7 @@ class PLASIMData(Dataset):
         self.output_timecoords = output_timecoords
 
         # this assumes that the normalization statistics are stored in the same directory as the data
-        self.normalizer = Normalizer(norm_stats_path)
+        self.normalizer = Normalizer(norm_stats_path, self.features_names)
 
         self.interval = interval
         self.nsteps = nsteps
@@ -160,6 +167,7 @@ class PLASIMData(Dataset):
         # get the time stamps
         with open(time_path, 'rb') as f:
             self.time_coords = pickle.load(f) # array of cftime objects
+            self.time_coords = self.time_coords.values
 
         # filter out those will be out of bound
         if nsteps > 0:
@@ -168,13 +176,13 @@ class PLASIMData(Dataset):
         if load_into_memory:
             self.surface = torch.from_numpy(self.data['surface'][:])
             self.multilevel = torch.from_numpy(self.data['multilevel'][:])
-            self.hour = torch.from_numpy(self.data['hour'][:])
-            self.day = torch.from_numpy(self.data['day'][:])
         else:
             self.surface = self.data['surface'] # t nlat nlon nsurface_channels
             self.multilevel = self.data['multilevel'] # t nlat nlon nlevels nmulti_channels
-            self.hour = self.data['hour'] # t
-            self.day = self.data['day'] # t
+
+        self.hour = torch.from_numpy(self.data['hour'][:])
+        self.day = torch.from_numpy(self.data['day'][:])
+        self.load_into_memory = load_into_memory
 
         self.nstamps = len(self.time_coords_filtered)
         print(f"Loaded {self.nstamps} time stamps for {split} split, from {self.time_coords[0].strftime()} to {self.time_coords[-1].strftime()}")
@@ -231,9 +239,13 @@ class PLASIMData(Dataset):
         day_of_year = self.day[idx_range] # (nsteps+1)
         hour_of_day = self.hour[idx_range]
 
+        if not self.load_into_memory:
+            surface_feat = torch.from_numpy(surface_feat)
+            multilevel_feat = torch.from_numpy(multilevel_feat)
+
         # normalize the feature
         if self.normalize_feature:
-            self.normalizer.normalize(surface_feat, multilevel_feat)
+            surface_feat, multilevel_feat = self.normalizer.normalize(surface_feat, multilevel_feat)
 
         # get temporal coords
         timestamp = [pd.Timestamp(t.strftime()) for t in time_coord]
