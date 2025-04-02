@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -C cpu
-#SBATCH -q regular
+#SBATCH -q debug
 #SBATCH -J process_data
 #SBATCH --mail-user=ayz2@andrew.cmu.edu
 #SBATCH --mail-type=ALL
-#SBATCH -t 2:00:00
+#SBATCH -t 00:05:00
 
 module load conda
 conda activate /pscratch/sd/a/ayz2/envs/climate
