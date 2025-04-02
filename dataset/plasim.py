@@ -109,14 +109,18 @@ class PLASIMData(Dataset):
                  normalize_feature=True,
                  interval=1,  # interval=1 is equal to 6 hours
                  nsteps=2,   # spit out how many consecutive future sequences
+                 split='train',
                  load_into_memory=False,
                  output_timecoords=False,
                  ):
 
         self.data_path = data_path  # a zarr file
         # open the data
-        dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True)
-
+        if split == 'train': # Manually chunk the dataset. Each chunk is around 70 MB
+            # We know that we will always access all lat/lon and levels at each call, therefore chunk along time dim and combine others
+            dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) #, chunks={'time': 23, 'plev': 13, 'lev': 10, 'lat': 64, 'lon': 128})
+        else:
+            dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) # doesn't matter for val since loading entire array into memory
         self.features_names = surface_vars + multi_level_vars
         self.constant_names = constant_names
         self.yearly_names = yearly_names

@@ -19,7 +19,8 @@ class ClimateDataModule(L.LightningDataModule):
                                     multi_level_vars=MULTI_LEVEL_FEATURES,
                                     constant_names=CONSTANTS_FEATURES,
                                     yearly_names=YEARLY_FEATURES,
-                                    nsteps=self.config.data.training_nsteps,     
+                                    nsteps=self.config.data.training_nsteps,   
+                                    split='train',
                                     )
         
         self.val_dataset = PLASIMData(data_path=self.config.data.val_data_path,
@@ -30,6 +31,7 @@ class ClimateDataModule(L.LightningDataModule):
                                 constant_names=CONSTANTS_FEATURES,
                                 yearly_names=YEARLY_FEATURES,
                                 nsteps=self.config.data.val_nsteps,
+                                split="valid",
                                 load_into_memory=True)
         
         self.normalizer = self.train_dataset.normalizer
