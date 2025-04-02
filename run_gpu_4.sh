@@ -10,13 +10,13 @@
 #SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=32
-#SBATCH -J climate_medium
+#SBATCH -J climate_large
 #SBATCH --gpus-per-task=1
 #SBATCH --gpu-bind=none
 
 export SLURM_CPU_BIND="cores"
 
-config_file=./configs/medium.yaml
+config_file=./configs/large.yaml
 
 module load conda
 conda activate /pscratch/sd/a/ayz2/envs/climate
