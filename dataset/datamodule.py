@@ -15,14 +15,14 @@ class ClimateDataModule(L.LightningDataModule):
         self.train_dataset = PLASIMData(data_path=self.config.data.train_data_path,
                                         norm_stats_path=self.config.data.norm_stats_path,
                                         boundary_path=self.config.data.boundary_path,
-                                        time_path=self.config.train_times_path,
+                                        time_path=self.config.data.train_times_path,
                                         nsteps=self.config.data.training_nsteps,   
                                         split='train')
         
         self.val_dataset = PLASIMData(data_path=self.config.data.val_data_path,
                                     norm_stats_path=self.config.data.norm_stats_path,
                                     boundary_path=self.config.data.boundary_path,
-                                    time_path=self.config.val_times_path,
+                                    time_path=self.config.data.val_times_path,
                                     nsteps=self.config.data.val_nsteps,
                                     split="valid",
                                     load_into_memory=True)

@@ -88,6 +88,7 @@ class Normalizer:
     def normalize(self, surface_feat, multilevel_feat):
         # surface feat in shape (nt, nlat, nlon, surface_channels)
         # multilevel feat in shape (nt, nlat, nlon, nlevel, multi_level_channels)
+        # assume this runs on cpu threads for dataloader
 
         for nan_idx in self.surface_nans:
             # replace nan w/ mean of the feature
@@ -102,8 +103,8 @@ class Normalizer:
         # surface feat in shape (nt, nlat, nlon, surface_channels)
         # multilevel feat in shape (nt, nlat, nlon, nlevel, multi_level_channels)
 
-        surface_feat = surface_feat * self.surface_stds + self.surface_means
-        multilevel_feat = multilevel_feat * self.multilevel_stds + self.multilevel_means
+        surface_feat = surface_feat * self.surface_stds.to(surface_feat.device) + self.surface_means.to(surface_feat.device)
+        multilevel_feat = multilevel_feat * self.multilevel_stds.to(surface_feat.device) + self.multilevel_means.to(surface_feat.device)
 
         return surface_feat, multilevel_feat
     
@@ -111,17 +112,17 @@ class Normalizer:
         # surface feat in shape (b, nt, nlat, nlon, surface_channels)
         # multilevel feat in shape (b, nt, nlat, nlon, nlevel, multi_level_channels)     
 
-        surface_feat = (surface_feat - self.surface_means.unsqueeze(0)) / self.surface_stds.unsqueeze(0)
-        multilevel_feat = (multilevel_feat - self.multilevel_means.unsqueeze(0)) / self.multilevel_stds.unsqueeze(0)
+        surface_feat = (surface_feat - self.surface_means.unsqueeze(0).to(surface_feat.device)) / self.surface_stds.unsqueeze(0).to(surface_feat.device)
+        multilevel_feat = (multilevel_feat - self.multilevel_means.unsqueeze(0).to(surface_feat.device)) / self.multilevel_stds.unsqueeze(0).to(surface_feat.device)
 
         return surface_feat, multilevel_feat  
 
     def batch_denormalize(self, surface_feat, multilevel_feat):
         # surface feat in shape (b, nt, nlat, nlon, surface_channels)
         # multilevel feat in shape (b, nt, nlat, nlon, nlevel, multi_level_channels)
-
-        surface_feat = surface_feat * self.surface_stds.unsqueeze(0) + self.surface_means.unsqueeze(0)
-        multilevel_feat = multilevel_feat * self.multilevel_stds.unsqueeze(0) + self.multilevel_means.unsqueeze(0)
+        
+        surface_feat = surface_feat * self.surface_stds.unsqueeze(0).to(surface_feat.device) + self.surface_means.unsqueeze(0).to(surface_feat.device)
+        multilevel_feat = multilevel_feat * self.multilevel_stds.unsqueeze(0).to(surface_feat.device) + self.multilevel_means.unsqueeze(0).to(surface_feat.device)
 
         return surface_feat, multilevel_feat
         
