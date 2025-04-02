@@ -2,7 +2,8 @@ log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
 #log_dir: logs
 project_name: PLASIM_flow_matching
 devices: 4
-accelerator: ddp
+accelerator: gpu
+strategy: ddp
 seed: 42
 
 model:

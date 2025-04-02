@@ -3,6 +3,7 @@ log_dir: logs
 project_name: PLASIM_flow_matching
 devices: [0]
 accelerator: gpu
+strategy: auto
 seed: 42
 
 model:

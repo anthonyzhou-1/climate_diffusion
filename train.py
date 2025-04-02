@@ -46,6 +46,7 @@ def main(config):
 
     trainer = L.Trainer(devices = config.devices,
                         accelerator = config.accelerator,
+                        strategy = config.strategy,
                         check_val_every_n_epoch = config.training.check_val_every_n_epoch,
                         max_epochs = config.training.max_epochs,
                         default_root_dir = config.log_dir,
