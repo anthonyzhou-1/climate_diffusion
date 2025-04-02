@@ -53,13 +53,13 @@ training:
     beta1: 0.9
     beta2: 0.95
     
-    check_val_every_n_epoch: 2
+    check_val_every_n_epoch: 1
     log_every_n_steps: 100
     max_epochs: 20
     checkpoint: null
 
-    batch_size_per_device: 8
-    eval_batch_size: 8
+    batch_size_per_device: 4
+    eval_batch_size: 4
     num_workers: 16
     gradient_accumulation_steps: 1
     skip_step: 0
