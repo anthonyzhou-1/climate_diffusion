@@ -109,18 +109,13 @@ class PLASIMData(Dataset):
                  normalize_feature=True,
                  interval=1,  # interval=1 is equal to 6 hours
                  nsteps=2,   # spit out how many consecutive future sequences
-                 split='train',
                  load_into_memory=False,
                  output_timecoords=False,
+                 chunk_range = [0, -1]
                  ):
 
         self.data_path = data_path  # a zarr file
-        # open the data
-        if split == 'train': # Manually chunk the dataset. Each chunk is around 70 MB
-            # We know that we will always access all lat/lon and levels at each call, therefore chunk along time dim and combine others
-            dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) #, chunks={'time': 23, 'plev': 13, 'lev': 10, 'lat': 64, 'lon': 128})
-        else:
-            dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) # doesn't matter for val since loading entire array into memory
+        dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) # doesn't matter for val since loading entire array into memory
         self.features_names = surface_vars + multi_level_vars
         self.constant_names = constant_names
         self.yearly_names = yearly_names
@@ -136,10 +131,10 @@ class PLASIMData(Dataset):
         # load the constants, in shape (nlat, nlon, nconstants) or (ntime, nlat, nlon, nyearly)
         self.constants, self.yearly_constants, self.leap_yearly_constants = self.load_constants(boundary_path)
 
-        print('Surface variables:', surface_vars)
-        print('Multi-level variables:', multi_level_vars)
-        print('Constant variables:', constant_names)
-        print('Yearly variables:', yearly_names)
+        #print('Surface variables:', surface_vars)
+        #print('Multi-level variables:', multi_level_vars)
+        #print('Constant variables:', constant_names)
+        #print('Yearly variables:', yearly_names)
         self.surface_vars = surface_vars
         self.multi_level_vars = multi_level_vars
 
@@ -150,8 +145,9 @@ class PLASIMData(Dataset):
         if nsteps > 0:
             start_time_coords = start_time_coords[:-(interval * nsteps)]
         else:
-            start_time_coords = start_time_coords[:]
+            start_time_coords = start_time_coords[chunk_range[0]:chunk_range[-1]]
 
+        time_coords = start_time_coords
         # keep in range data
         self.dat = dat.sel(time=time_coords)
         if load_into_memory:
