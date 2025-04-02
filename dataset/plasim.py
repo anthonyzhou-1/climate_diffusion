@@ -84,7 +84,6 @@ class Normalizer:
         # shape (8, 2), (10, 5, 2)
         return np.array(surface_stats), np.array(multilevel_stats).transpose(2, 0, 1)
     
-    @torch.no_grad()
     def normalize(self, surface_feat, multilevel_feat):
         # surface feat in shape (nt, nlat, nlon, surface_channels)
         # multilevel feat in shape (nt, nlat, nlon, nlevel, multi_level_channels)
@@ -120,7 +119,7 @@ class Normalizer:
     def batch_denormalize(self, surface_feat, multilevel_feat):
         # surface feat in shape (b, nt, nlat, nlon, surface_channels)
         # multilevel feat in shape (b, nt, nlat, nlon, nlevel, multi_level_channels)
-        
+
         surface_feat = surface_feat * self.surface_stds.unsqueeze(0).to(surface_feat.device) + self.surface_means.unsqueeze(0).to(surface_feat.device)
         multilevel_feat = multilevel_feat * self.multilevel_stds.unsqueeze(0).to(surface_feat.device) + self.multilevel_means.unsqueeze(0).to(surface_feat.device)
 

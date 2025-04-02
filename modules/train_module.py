@@ -41,6 +41,8 @@ class TrainModule(L.LightningModule):
         self.lr = config.training.lr
         self.config = config
 
+        self.ddp = True if config.strategy == 'ddp' else False
+
     def forward(self, u, sigma_t, scalar_params, grid_params):
         return self.model(u, sigma_t, scalar_params, grid_params)
     
@@ -56,7 +58,7 @@ class TrainModule(L.LightningModule):
         if eval:
             return loss, model_input, pred, target
 
-        self.log("train_loss", loss.mean(), on_step=True, on_epoch=True)
+        self.log("train_loss", loss.mean(), on_step=True, on_epoch=True, sync_dist=self.ddp)
 
         return loss
 
@@ -77,7 +79,7 @@ class TrainModule(L.LightningModule):
         
 
         # visualize the prediction for first batch
-        if batch_idx == 0 and self.config.training.visualize:
+        if batch_idx == 0 and self.config.training.visualize and self.global_rank == 0:
             t2m_pred = pred_feat_dict['tas'].cpu().numpy()
             t2m_target = target_feat_dict['tas'].cpu().numpy()
             z500_pred = pred_feat_dict['zg'][..., 7].cpu().numpy()
@@ -111,21 +113,21 @@ class TrainModule(L.LightningModule):
         u10m_loss = loss_dict['ua'][..., 0].mean(0) # u wind at level=0
         t850_loss = loss_dict['ta'][..., -1].mean(0) # temp at level=9
         
-        self.log('val_t2m_72', t2m_loss[11].item(), on_step=False, on_epoch=True)
-        self.log('val_t2m_120', t2m_loss[19].item(), on_step=False, on_epoch=True)
-        self.log('val_t2m_240', t2m_loss[39].item(), on_step=False, on_epoch=True)
+        self.log('val_t2m_72', t2m_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val_t2m_120', t2m_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val_t2m_240', t2m_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
-        self.log('val_z500_72', z500_loss[11].item(), on_step=False, on_epoch=True)
-        self.log('val_z500_120', z500_loss[19].item(), on_step=False, on_epoch=True)
-        self.log('val_z500_240', z500_loss[39].item(), on_step=False, on_epoch=True)
+        self.log('val_z500_72', z500_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val_z500_120', z500_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val_z500_240', z500_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
-        self.log('u10m_72', u10m_loss[11].item(), on_step=False, on_epoch=True)
-        self.log('u10m_120', u10m_loss[19].item(), on_step=False, on_epoch=True)
-        self.log('u10m_240', u10m_loss[39].item(), on_step=False, on_epoch=True)
+        self.log('u10m_72', u10m_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('u10m_120', u10m_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('u10m_240', u10m_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
-        self.log('t850_72', t850_loss[11].item(), on_step=False, on_epoch=True)
-        self.log('t850_120', t850_loss[19].item(), on_step=False, on_epoch=True)
-        self.log('t850_240', t850_loss[39].item(), on_step=False, on_epoch=True)
+        self.log('t850_72', t850_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('t850_120', t850_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('t850_240', t850_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
     @torch.no_grad()
     def predict(self, model,

@@ -60,7 +60,7 @@ training:
     checkpoint: null
 
     batch_size_per_device: 16
-    eval_batch_size: 32
+    eval_batch_size: 16
     num_workers: 16
     gradient_accumulation_steps: 1
     skip_step: 0
