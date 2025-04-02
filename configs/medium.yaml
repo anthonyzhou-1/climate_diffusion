@@ -53,9 +53,9 @@ training:
     beta1: 0.9
     beta2: 0.95
     
-    check_val_every_n_epoch: 1
+    check_val_every_n_epoch: 2
     log_every_n_steps: 100
-    max_epochs: 10
+    max_epochs: 20
     checkpoint: null
 
     batch_size_per_device: 8
