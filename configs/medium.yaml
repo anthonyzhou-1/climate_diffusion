@@ -1,5 +1,5 @@
-#log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
-log_dir: logs
+log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
+#log_dir: logs
 project_name: PLASIM_flow_matching
 devices: [0]
 accelerator: gpu
@@ -10,14 +10,14 @@ model:
     num_fa_blocks: 8
     num_blocks: 8
     patch_size: 2
-    cond_dim: 512
+    cond_dim: 1024
     num_cond: 2 # day of year, hour of day
     num_constants: 6 # lsm sg z0; rsdt sic sst
-    dim: 512
-    num_heads: 16
+    dim: 1024
+    num_heads: 32
     in_dim: 116  # 5 multilevel vars * 10 levels = 50 + 8 surface features = 58 * 2 (past timestep + noise) = 116
     out_dim: 58 # only predict noise 
-    proj_bottleneck_dim: 512
+    proj_bottleneck_dim: 1024
     kernel_expansion_ratio: 1.0
     depth_dropout: 0.0
     scale_by_sigma: True
@@ -25,20 +25,20 @@ model:
 
 data:
     # perlmutter paths
-    #train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096.h5
-    #val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460.h5
-    #train_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096_times.pkl
-    #val_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460_times.pkl
-    #norm_stats_path: /pscratch/sd/a/ayz2/PLASIM/processed/norm_stats.npz
-    #boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
+    train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096.h5
+    val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460.h5
+    train_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096_times.pkl
+    val_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460_times.pkl
+    norm_stats_path: /pscratch/sd/a/ayz2/PLASIM/processed/norm_stats.npz
+    boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
 
     # local paths
-    train_data_path: /data/PLASIM/PLASIM_train_10000.h5
-    val_data_path: /data/PLASIM/PLASIM_valid_1460.h5
-    train_times_path: /data/PLASIM/PLASIM_train_10000_times.pkl
-    val_times_path: /data/PLASIM/PLASIM_valid_1460_times.pkl
-    norm_stats_path: /data/PLASIM/PLASIM/norm_stats.npz
-    boundary_path: /data/PLASIM/PLASIM/boundary_vars.h5
+    #train_data_path: /data/PLASIM/PLASIM_train_10000.h5
+    #val_data_path: /data/PLASIM/PLASIM_valid_1460.h5
+    #train_times_path: /data/PLASIM/PLASIM_train_10000_times.pkl
+    #val_times_path: /data/PLASIM/PLASIM_valid_1460_times.pkl
+    #norm_stats_path: /data/PLASIM/PLASIM/norm_stats.npz
+    #boundary_path: /data/PLASIM/PLASIM/boundary_vars.h5
 
     training_nsteps: 1 # train on next-step prediction
     val_nsteps: 40 # valid up to 40 steps
@@ -58,8 +58,8 @@ training:
     max_epochs: 10
     checkpoint: null
 
-    batch_size_per_device: 64
-    eval_batch_size: 32
+    batch_size_per_device: 8
+    eval_batch_size: 8
     num_workers: 16
     gradient_accumulation_steps: 1
     skip_step: 0
