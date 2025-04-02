@@ -12,6 +12,8 @@ config = get_yaml(config_path)
 config = dict2namespace(config)
 
 config.training.batch_size_per_device = 1
+config.data.training_nsteps = 0
+config.data.val_nsteps = 0
 
 split = "valid"
 
