@@ -521,8 +521,6 @@ class PLASIMData(Dataset):
  
         hour_of_day = [t.hour / 24 for t in timestamp]
  
-
- 
         yearly_constants = []
  
         for i in range(len(time_coord)):
@@ -538,12 +536,9 @@ class PLASIMData(Dataset):
                 yearly_constants_i = self.leap_yearly_constants[yearly_idx] # (nlat, nlon, nyearly)
  
             else:
- 
                 yearly_constants_i = self.yearly_constants[yearly_idx] # (nlat, nlon, nyearly)
  
             yearly_constants.append(yearly_constants_i)
- 
-
  
         yearly_constants = torch.stack(yearly_constants, dim=0) # (nt, nlat, nlon, nyearly)
         if not self.output_timecoords:
