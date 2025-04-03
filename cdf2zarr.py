@@ -4,6 +4,13 @@ import re
 # 1. List all NetCDF files matching the pattern.
 all_files = glob.glob('/pscratch/sd/a/ayz2/PLASIM/data_*.nc')
 
+filtered_files = []
+for f in all_files:
+    if 'sigma' not in f and 'climatology' not in f:
+        filtered_files.append(f)
+
+all_files = filtered_files
+
 # 2. Sort files numerically by extracting the year from the filename.
 def extract_year(filename):
     match = re.search(r'data_(\d+)\.nc', filename)
@@ -27,6 +34,7 @@ for f in train_files:
 print("Selected files for validation set:")
 for f in valid_files:
     print(f)
+
 
 # 4. Open the selected files and combine them along the time dimension.
 
