@@ -77,11 +77,8 @@ class Normalizer:
                 if feature_name in SURFACE_FEATURES:
                     surface_stats.append([mean, std])
                 elif feature_name in MULTI_LEVEL_FEATURES:
-                    if len(mean) > 10: # truncate to first 10 levels
-                        mean = mean[:10]
-                        std = std[:10]
                     multilevel_stats.append([mean, std])
-        # shape (8, 2), (10, 5, 2)
+        # shape (8, 2), (13, 5, 2)
         return np.array(surface_stats), np.array(multilevel_stats).transpose(2, 0, 1)
     
     def normalize(self, surface_feat, multilevel_feat):

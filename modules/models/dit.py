@@ -3,17 +3,17 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import einsum
 from einops import rearrange
 from einops.layers.torch import Rearrange
 
-from modules.models.positional_encoding import apply_2d_rotary_pos_emb, TimestepEmbedder
+from modules.models.positional_encoding import TimestepEmbedder
 
 from modules.models.spherical_harmonics import SphericalHarmonicsPE
 
 from modules.models.basics import MLP, LayerNorm, \
     bias_dropout_add_scale_fused_train, \
     bias_dropout_add_scale_fused_inference, \
-    unpatchify, \
     modulate_fused
 
 from modules.models.factorized_attention import FADiTBlockS2
@@ -21,6 +21,67 @@ from modules.models.factorized_attention import FADiTBlockS2
 #################################################################################
 #                                 Core Model                                    #
 #################################################################################
+class CrossAttention(nn.Module):
+    def __init__(self, query_dim, context_dim, heads=8, dim_head=64, dropout=0.):
+        super().__init__()
+        inner_dim = dim_head * heads
+        context_dim = context_dim
+
+        self.scale = dim_head ** -0.5
+        self.heads = heads
+
+        self.to_q = nn.Linear(query_dim, inner_dim, bias=False)
+        self.to_k = nn.Linear(context_dim, inner_dim, bias=False)
+        self.to_v = nn.Linear(context_dim, inner_dim, bias=False)
+
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, query_dim),
+            nn.Dropout(dropout)
+        )
+
+    def forward(self, x, context):
+        h = self.heads
+
+        q = self.to_q(x)
+        k = self.to_k(context)
+        v = self.to_v(context)
+
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
+
+        sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+
+        # attention, what we cannot get enough of
+        attn = sim.softmax(dim=-1)
+
+        out = einsum('b i j, b j d -> b i d', attn, v)
+        out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
+        return self.to_out(out)
+    
+     
+class CrossAttentionBlock(nn.Module):
+    def __init__(
+            self,
+            num_heads: int,
+            hidden_dim: int,
+            dropout = 0.0,
+            act='gelu',
+            mlp_ratio=4,
+    ):
+        super().__init__()
+        self.ln_q = nn.LayerNorm(hidden_dim)
+        self.ln_kv = nn.LayerNorm(hidden_dim)
+        self.Attn = CrossAttention(hidden_dim, hidden_dim, heads=num_heads, dim_head=hidden_dim // num_heads,
+                                                dropout=dropout) # assume query and context dim are the same
+            
+        self.ln_2 = nn.LayerNorm(hidden_dim)
+        self.mlp = MLP(hidden_dim, expansion_ratio=mlp_ratio)
+
+    def forward(self, q, kv):
+        fx = self.Attn(self.ln_q(q), self.ln_kv(kv)) + q
+        fx = self.mlp(self.ln_2(fx)) + fx
+
+        return fx
+
 class DiTBlock(nn.Module):
     def __init__(self, dim, n_heads, cond_dim, mlp_ratio=4, dropout=0.1):
         super().__init__()
@@ -158,7 +219,8 @@ class ClimaDIT(nn.Module):
         self.cond_dim = config.model.cond_dim
         self.num_heads = config.model.num_heads
         self.num_fa_blocks = config.model.num_fa_blocks
-        self.num_blocks = config.model.num_blocks
+        self.num_sa_blocks = config.model.num_sa_blocks
+        self.num_ca_blocks = config.model.num_ca_blocks
         self.num_cond = config.model.num_cond
         self.patch_size = config.model.patch_size
         self.num_constants = config.model.num_constants
@@ -198,9 +260,9 @@ class ClimaDIT(nn.Module):
         if self.num_cond > 0:
             self.cond_map = TimestepEmbedder(self.cond_dim, num_conds=self.num_cond)
 
-        blocks = []
+        fa_blocks = []
         for _ in range(self.num_fa_blocks):
-            blocks.append(FADiTBlockS2(self.dim,
+            fa_blocks.append(FADiTBlockS2(self.dim,
                                        self.dim // self.num_heads,
                                        self.num_heads,
                                        config.model.proj_bottleneck_dim,
@@ -210,12 +272,20 @@ class ClimaDIT(nn.Module):
                                        use_softmax=True,
                                        depth_dropout=config.model.depth_dropout))
 
-        for _ in range(self.num_fa_blocks, self.num_blocks):
-            blocks.append(DiTBlock(self.dim,
+        sa_blocks = []
+        for _ in range(self.num_sa_blocks):
+            sa_blocks.append(DiTBlock(self.dim,
                                      self.num_heads,
                                      self.cond_dim,
                                      dropout=config.model.depth_dropout))
-        self.blocks = nn.ModuleList(blocks)
+            
+        ca_blocks = []
+        for _ in range(self.num_ca_blocks):
+            ca_blocks.append(CrossAttentionBlock(self.num_heads,
+                                                 self.dim,))
+        self.fa_blocks = nn.ModuleList(fa_blocks)
+        self.sa_blocks = nn.ModuleList(sa_blocks)
+        self.ca_blocks = nn.ModuleList(ca_blocks)
 
         self.scale_by_sigma = config.model.scale_by_sigma
         if self.scale_by_sigma:
@@ -278,7 +348,8 @@ class ClimaDIT(nn.Module):
         sphere_pe = self.pe_embed(lat + math.pi/2, lon - math.pi).expand(batch_size, -1, -1, -1) # [b, nlat, nlon, dim]
         sphere_pe = self.pe2patch(sphere_pe) # [b, nlat//p, nlon//p, dim]
 
-        u = u + grid_emb + sphere_pe   # [b, nlat//p, nlon//p, dim]
+        u = u + sphere_pe   # [b, nlat//p, nlon//p, dim]
+        grid_emb = grid_emb + sphere_pe # [b, nlat//p, nlon//p, dim]
 
         if self.scale_by_sigma:
             c_t = F.silu(self.sigma_map(sigma_t))
@@ -292,14 +363,17 @@ class ClimaDIT(nn.Module):
 
         # fa blocks
         for l in range(self.num_fa_blocks):
-            u = self.blocks[l](u, lat_grid, lat_grid_diff, lon_grid_diff, c)
+            u = self.fa_blocks[l](u, lat_grid, lat_grid_diff, lon_grid_diff, c)
 
         # flatten u after factorized attention
         u = rearrange(u, 'b ny nx c -> b (ny nx) c') # [b, nlat//p * nlon//p, dim]
+        grid_emb = rearrange(grid_emb, 'b ny nx c -> b (ny nx) c') # [b, nlat//p * nlon//p, dim]
 
         # dit blocks
-        for l in range(self.num_fa_blocks, self.num_blocks):
-            u = self.blocks[l](u, c)
+        for l in range(self.num_sa_blocks):
+            u = self.sa_blocks[l](u, c)
+            if l < self.num_sa_blocks - 1:
+                u = self.ca_blocks[l](u, grid_emb)
 
         if self.scale_by_sigma:
             u = self.output_layer(u, c_t)
