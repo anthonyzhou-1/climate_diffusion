@@ -468,15 +468,6 @@ class PLASIMData(Dataset):
                             rearrange(torch.from_numpy(v.values.T), 'nlon nlat nt -> nt nlat nlon')
  
                         for k, v in features.items()}
- 
-
- 
-        # take 1st 10 levels of geopotential
- 
-        feature_dict['zg'] = feature_dict['zg'][..., :10]
- 
-
- 
         # normalize the feature
  
         if self.normalize_feature:
@@ -574,15 +565,9 @@ class PLASIMData(Dataset):
 
  
         yearly_constants = torch.stack(yearly_constants, dim=0) # (nt, nlat, nlon, nyearly)
- 
-
- 
         if not self.output_timecoords:
- 
             return surface_feat, multi_level_feat, self.constants.clone(), yearly_constants, torch.Tensor(day_of_year), torch.Tensor(hour_of_day)
- 
         else:
- 
             return surface_feat, multi_level_feat, self.constants.clone(), yearly_constants, torch.Tensor(day_of_year), torch.Tensor(hour_of_day), timestamp
 
 split = "train"
