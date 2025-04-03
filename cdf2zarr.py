@@ -36,3 +36,10 @@ ds = ds.chunk({'time': 1460, 'lat': 64, 'lon': 128})
 
 # 6. Save the combined dataset to a Zarr store.
 ds.to_zarr('/pscratch/sd/a/ayz2/PLASIM/processed_new/PLASIM_train_12-111.zarr', mode='w')
+
+ds = xr.open_mfdataset(valid_files, combine='by_coords')
+
+ds = ds.chunk({'time': 1460, 'lat': 64, 'lon': 128})
+
+# 6. Save the combined dataset to a Zarr store.
+ds.to_zarr('/pscratch/sd/a/ayz2/PLASIM/processed_new/PLASIM_valid_11.zarr', mode='w')
