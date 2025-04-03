@@ -240,25 +240,8 @@ class PLASIMData(Dataset):
  
 
         # open the data
- 
-
-        if split == 'train': # Manually chunk the dataset. Each chunk is around 70 MB
- 
-
-            # We know that we will always access all lat/lon and levels at each call, therefore chunk along time dim and combine others
- 
-
-            dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) #, chunks={'time': 23, 'plev': 13, 'lev': 10, 'lat': 64, 'lon': 128})
- 
-
-        else:
- 
-
-            dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) # doesn't matter for val since loading entire array into memory
- 
-
-        dat = xr.open_dataset(self.data_path, engine='zarr', use_cftime=True) # doesn't matter for val since loading entire array into memory
- 
+        time_coder = xr.coders.CFDatetimeCoder(use_cftime=True)
+        dat = xr.open_dataset(self.data_path, engine='zarr', decode_times=time_coder) 
         self.features_names = surface_vars + multi_level_vars
  
         self.constant_names = constant_names
@@ -294,7 +277,7 @@ class PLASIMData(Dataset):
         # get the time stamps
  
         time_coords = dat.time.values # array of cftime objects
-        print(len(time_coords))
+        #print(len(time_coords))
  
         start_time_coords = time_coords
  
@@ -673,7 +656,7 @@ for j in tqdm(range(num_iters)):
                     load_into_memory=True,
                     chunk_range=[chunk_start, chunk_end])
 
-h5f.close()
+f.close()
 
 # reload entire dset to dump all time coords
 dset = PLASIMData(data_path=data_path,
