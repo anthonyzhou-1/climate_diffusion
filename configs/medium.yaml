@@ -5,6 +5,7 @@ devices: 3
 accelerator: gpu
 strategy: ddp
 seed: 42
+description: medium
 
 model:
     name: dit

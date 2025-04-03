@@ -5,6 +5,7 @@ devices: [0]
 accelerator: gpu
 strategy: auto
 seed: 42
+description: small
 
 model:
     name: dit

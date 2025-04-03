@@ -5,6 +5,7 @@ devices: 1
 accelerator: gpu
 strategy: auto
 seed: 42
+description: small_perl
 
 model:
     name: dit

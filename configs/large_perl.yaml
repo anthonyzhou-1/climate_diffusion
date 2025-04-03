@@ -5,6 +5,7 @@ devices: 4
 accelerator: gpu
 strategy: ddp
 seed: 42
+description: large_perl
 
 model:
     name: dit
