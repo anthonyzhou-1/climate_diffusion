@@ -22,7 +22,7 @@ def main(config):
     now = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     seed_everything(seed)
 
-    name = f"ClimaDiT_{config.name}_{config.strategy}_{now}"
+    name = f"ClimaDiT_{config.description}_{config.strategy}_{now}"
     wandb_logger = WandbLogger(project=config.project_name,
                                name=name)
     config.log_dir = config.log_dir + '/' + name 
