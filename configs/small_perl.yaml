@@ -1,9 +1,9 @@
 log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
 #log_dir: logs
 project_name: PLASIM_flow_matching
-devices: 4
+devices: 1
 accelerator: gpu
-strategy: ddp
+strategy: auto
 seed: 42
 
 model:
