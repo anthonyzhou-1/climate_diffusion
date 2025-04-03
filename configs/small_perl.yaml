@@ -1,9 +1,9 @@
 log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
 #log_dir: logs
 project_name: PLASIM_flow_matching
-devices: 1
+devices: 4
 accelerator: gpu
-strategy: auto
+strategy: ddp
 seed: 42
 description: small_perl
 
@@ -61,8 +61,8 @@ training:
     max_epochs: 20
     checkpoint: null
 
-    batch_size_per_device: 32
-    eval_batch_size: 32
+    batch_size_per_device: 16
+    eval_batch_size: 16
     num_workers: 8
     gradient_accumulation_steps: 1
     skip_step: 0
