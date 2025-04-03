@@ -5,53 +5,34 @@ import yaml
 from einops import rearrange
 
 from matplotlib import pyplot as plt
-import matplotlib
-from mpl_toolkits.axes_grid1 import ImageGrid
 
-def plot_result_2d(y, y_pred, filename,
-                   num_vis=3, num_t=6, cmap='twilight'):
-    matplotlib.use('Agg')
+def plot_result_2d(y, y_pred, filename, num_t=6, cmap='twilight_shifted'):
+    # y in shape [t h w], y_pred in shape [t h w]
 
-    # visualize the result in 2D rectangular map
-    # y and y_pred should be in shape [Nsample, time, lat, lon]
-    # we randomly pick num_vis samples to visualize
-    # num_vis: number of samples to visualize
-
-    # the visualization are arranged as follows:
-    # first row: y[0, 0, :, :], y[0, t, :, :], y[0, 2*t, :, :],..., y[0, T, :, :]
-    # second row: y_pred[0, 0, :, :], y_pred[0, t, :, :], y_pred[0, 2*t, :, :],..., y_pred[0, T, :, :]
-    # third row: y[1, 0, :, :], y[1, t, :, :], y[1, 2*t, :, :],..., y[1, T, :, :] and so on
-
-    _, t_total, h, w = y_pred.shape
+    t_total, h, w = y_pred.shape
 
     dt = t_total // num_t
-    fig = plt.figure(figsize=(12, 6))
+    fig, axs = plt.subplots(2, num_t, figsize=(num_t*6, 6))
 
-    y_pred = y_pred[:num_vis, ::dt, :, :]
-    y = y[:num_vis, ::dt, :, :]
+    y_pred = y_pred[::dt]
+    y = y[::dt]
 
-    grid = ImageGrid(fig, 111,  # as in plt.subplot(111)
-                     nrows_ncols=(num_vis*2, num_t),
-                     axes_pad=0.05,
-                     share_all=False,
-                     cbar_location="right",
-                     cbar_mode="single",
-                     cbar_size="3%",
-                     cbar_pad=0.15,
-                     )
+    vmin = y.min()
+    vmax = y.max()
 
-    # Add data to image grid
-    for row in range(num_vis):
-        for t in range(num_t):
-            grid[row*2*num_t + t].imshow(y_pred[row, t], cmap=cmap)
-            grid[row*2*num_t + t].axis('off')
-            im = grid[row*2*num_t + t + num_t].imshow(y[row, t], cmap=cmap)
-            grid[row*2*num_t + t + num_t].axis('off')
-            # grid[row*2*num_t + t + num_t].cax.colorbar(im)
-            # grid[row*2*num_t + t + num_t].cax.toggle_label(True)
+    for i in range(num_t):
+        im0 = axs[0][i].imshow(y[i], vmin=vmin, vmax=vmax,cmap=cmap)
+        im1 = axs[1][i].imshow(y_pred[i], vmin=vmin, vmax=vmax, cmap=cmap)
 
+        # set the title
+        axs[0][i].set_title(f"True t={i*dt}")
+        axs[1][i].set_title(f"Pred t={i*dt}")
+
+    fig.subplots_adjust(right=0.85)
+    cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
+    fig.colorbar(im0, cax=cbar_ax)
     # save the figure
-    plt.savefig(filename, dpi=200)
+    plt.savefig(filename, dpi=300)
     plt.close()
 
 def count_params(model):

@@ -252,7 +252,7 @@ class PLASIMData(Dataset):
         else:
             return surface_feat, multi_level_feat, self.constants.clone(), yearly_constants, torch.Tensor(day_of_year), torch.Tensor(hour_of_day), timestamp
 
-split = "train"
+split = "valid"
 #train_path = "/data/PLASIM/PLASIM/PLASIM_train_12-111.zarr"
 #valid_path = "/data/PLASIM/PLASIM/PLASIM_valid_11.zarr"
 #norm_stats_path = "/data/PLASIM/PLASIM/norm_stats.npz"

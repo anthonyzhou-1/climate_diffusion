@@ -80,24 +80,12 @@ class TrainModule(L.LightningModule):
 
         # visualize the prediction for first batch
         if batch_idx == 0 and self.config.training.visualize and self.global_rank == 0:
-            t2m_pred = pred_feat_dict['tas'].cpu().numpy()
-            t2m_target = target_feat_dict['tas'].cpu().numpy()
-            z500_pred = pred_feat_dict['zg'][..., 7].cpu().numpy()
-            z500_target = target_feat_dict['zg'][..., 7].cpu().numpy()
-            # b t h w
-            # we just need 4 batches of each
-            t2m_pred = t2m_pred[:4]
-            t2m_target = t2m_target[:4]
-            z500_pred = z500_pred[:4]
-            z500_target = z500_target[:4]
+            t2m_pred = pred_feat_dict['tas'][0].cpu().numpy()
+            t2m_target = target_feat_dict['tas'][0].cpu().numpy()
+            z500_pred = pred_feat_dict['zg'][0, ..., 7].cpu().numpy()
+            z500_target = target_feat_dict['zg'][0, ..., 7].cpu().numpy()
 
-            # reshape to [b, t, h, w]
-            t2m_pred = t2m_pred.reshape(4, -1, t2m_pred.shape[-2], t2m_pred.shape[-1])
-            t2m_target = t2m_target.reshape(4, -1, t2m_target.shape[-2], t2m_target.shape[-1])
-            z500_pred = z500_pred.reshape(4, -1, z500_pred.shape[-2], z500_pred.shape[-1])
-            z500_target = z500_target.reshape(4, -1, z500_target.shape[-2], z500_target.shape[-1])
-
-            plot_result_2d(t2m_pred,
+            plot_result_2d(t2m_pred, # t h w
                             t2m_target,
                             f'{self.config.log_dir}/val_t2m_{self.current_epoch}.png')
             plot_result_2d(z500_pred,
@@ -109,25 +97,40 @@ class TrainModule(L.LightningModule):
         
         # calculate the mean loss, shape b t for each key, b t l for multilevel keys
         t2m_loss = loss_dict['tas'].mean(0) # surface temp, mean across batch dim
+        pr_6h_loss = loss_dict['pr_6h'].mean(0) # 6-hour accumulated precipitation
         z500_loss = loss_dict['zg'][..., 7].mean(0) # geopotential at level=7
-        u10m_loss = loss_dict['ua'][..., 0].mean(0) # u wind at level=0
-        t850_loss = loss_dict['ta'][..., -1].mean(0) # temp at level=9
+        u250_loss = loss_dict['ua'][..., 4].mean(0) # u wind at level=4
+        t850_loss = loss_dict['ta'][..., 10].mean(0) # temp at level=10
         
-        self.log('val_t2m_72', t2m_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
-        self.log('val_t2m_120', t2m_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
-        self.log('val_t2m_240', t2m_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/t2m_6', t2m_loss[0].item(), on_step=False, on_epoch=True, sync_dist=self.ddp) # 6 hours
+        self.log('val/t2m_24', t2m_loss[3].item(), on_step=False, on_epoch=True, sync_dist=self.ddp) # 1 day
+        self.log('val/t2m_72', t2m_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp) # 3 day
+        self.log('val/t2m_120', t2m_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp) # 5 day
+        self.log('val/t2m_240', t2m_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp) # 10 day
 
-        self.log('val_z500_72', z500_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
-        self.log('val_z500_120', z500_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
-        self.log('val_z500_240', z500_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/pr_6h_6', pr_6h_loss[0].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/pr_6h_24', pr_6h_loss[3].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/pr_6h_72', pr_6h_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/pr_6h_120', pr_6h_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/pr_6h_240', pr_6h_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
-        self.log('u10m_72', u10m_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
-        self.log('u10m_120', u10m_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
-        self.log('u10m_240', u10m_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/z500_6', z500_loss[0].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/z500_24', z500_loss[3].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/z500_72', z500_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/z500_120', z500_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/z500_240', z500_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
-        self.log('t850_72', t850_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
-        self.log('t850_120', t850_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
-        self.log('t850_240', t850_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/u250_6', u250_loss[0].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/u250_24', u250_loss[3].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/u250_72', u250_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/u250_120', u250_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/u250_240', u250_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+
+        self.log('val/t850_6', t850_loss[0].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/t850_24', t850_loss[3].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/t850_72', t850_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/t850_120', t850_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val/t850_240', t850_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
     @torch.no_grad()
     def predict(self, model,
