@@ -6,8 +6,15 @@
 #SBATCH --mail-type=ALL
 #SBATCH -q debug
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=1
+#SBATCH -G 4
+#SBATCH --ntasks-per-node=4
+#SBATCH --gpus-per-node=4
+#SBATCH --cpus-per-task=32
 #SBATCH -J climate_small
+#SBATCH --gpus-per-task=1
+#SBATCH --gpu-bind=none
+
+export SLURM_CPU_BIND="cores"
 
 config_file=./configs/small_perl.yaml
 
@@ -15,8 +22,10 @@ module load conda
 conda activate /pscratch/sd/a/ayz2/envs/climate
 
 # OpenMP settings:
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=4
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
-srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1 python train.py --config=$config_file
+export NCCL_IB_DISABLE=1
+
+srun -n 4 -c 32 -G 4 python train.py --config=$config_file
