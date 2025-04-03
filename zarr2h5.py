@@ -14,8 +14,6 @@ import xarray as xr
  
 import pandas as pd
  
-import h5py as h5f
- 
 import cftime
  
 
@@ -371,7 +369,7 @@ class PLASIMData(Dataset):
  
         # load constants into local memory. About 300 Mb
  
-        boundary_file = h5f.File(boundary_path, 'r')
+        boundary_file = h5py.File(boundary_path, 'r')
  
         constants_dict = {}
  
@@ -633,9 +631,9 @@ if os.path.exists(path):
 else:
     print(f'No file {path} exists yet.')
 
-h5f = h5py.File(path, 'a')
+f = h5py.File(path, 'a')
 
-dataset = h5f.create_group(split)
+dataset = f.create_group(split)
 
 h5f_u = dataset.create_dataset(f'surface', (num_samples, nlat, nlon, nsurface_channels), dtype='f4')
 h5f_um = dataset.create_dataset(f'multilevel', (num_samples, nlat, nlon, nlevels, nmulti_channels), dtype='f4')
