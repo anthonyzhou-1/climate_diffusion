@@ -63,7 +63,7 @@ training:
 
     batch_size_per_device: 16
     eval_batch_size: 16
-    num_workers: 1
+    num_workers: 8
     gradient_accumulation_steps: 1
     skip_step: 0
     gradient_clip_val: 1.0

@@ -372,7 +372,7 @@ class ClimaDIT(nn.Module):
         # dit blocks
         for l in range(self.num_sa_blocks):
             u = self.sa_blocks[l](u, c)
-            if l < self.num_sa_blocks - 1:
+            if l < self.num_ca_blocks:
                 u = self.ca_blocks[l](u, grid_emb)
 
         if self.scale_by_sigma:
