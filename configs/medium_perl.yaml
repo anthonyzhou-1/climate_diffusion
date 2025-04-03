@@ -18,8 +18,8 @@ model:
     num_constants: 6 # lsm sg z0; rsdt sic sst
     dim: 1024
     num_heads: 32
-    in_dim: 116  # 5 multilevel vars * 10 levels = 50 + 8 surface features = 58 * 2 (past timestep + noise) = 116
-    out_dim: 58 # only predict noise 
+    in_dim: 146  # 5 multilevel vars * 13 levels = 65 + 8 surface features = 73 * 2 (past timestep + noise) = 146
+    out_dim: 73 # only predict noise 
     proj_bottleneck_dim: 1024
     kernel_expansion_ratio: 1.0
     depth_dropout: 0.0
