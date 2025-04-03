@@ -621,7 +621,7 @@ dat = dset.dat
 nlat = 64
 nlon = 128 
 nsurface_channels = 8
-nlevels = 10
+nlevels = 13
 nmulti_channels = 5
 
 path = f"/pscratch/sd/a/ayz2/PLASIM/processed_new/PLASIM_{split}_{num_samples}.h5"
