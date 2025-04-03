@@ -61,7 +61,7 @@ training:
     max_epochs: 20
     checkpoint: null
 
-    batch_size_per_device: 4
+    batch_size_per_device: 2
     eval_batch_size: 4
     num_workers: 8
     gradient_accumulation_steps: 1
