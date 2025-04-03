@@ -1,7 +1,7 @@
-#log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
-log_dir: logs
+log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
+#log_dir: logs
 project_name: PLASIM_flow_matching
-devices: 3
+devices: 4
 accelerator: gpu
 strategy: ddp
 seed: 42
@@ -26,20 +26,20 @@ model:
 
 data:
     # perlmutter paths
-    #train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096.h5
-    #val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460.h5
-    #train_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096_times.pkl
-    #val_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460_times.pkl
-    #norm_stats_path: /pscratch/sd/a/ayz2/PLASIM/processed/norm_stats.npz
-    #boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
+    train_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096.h5
+    val_data_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460.h5
+    train_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_train_146096_times.pkl
+    val_times_path: /pscratch/sd/a/ayz2/PLASIM/processed/PLASIM_valid_1460_times.pkl
+    norm_stats_path: /pscratch/sd/a/ayz2/PLASIM/processed/norm_stats.npz
+    boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
 
     # local paths
-    train_data_path: /data/PLASIM/PLASIM_train_10000.h5
-    val_data_path: /data/PLASIM/PLASIM_valid_1460.h5
-    train_times_path: /data/PLASIM/PLASIM_train_10000_times.pkl
-    val_times_path: /data/PLASIM/PLASIM_valid_1460_times.pkl
-    norm_stats_path: /data/PLASIM/PLASIM/norm_stats.npz
-    boundary_path: /data/PLASIM/PLASIM/boundary_vars.h5
+    #train_data_path: /data/PLASIM/PLASIM_train_10000.h5
+    #val_data_path: /data/PLASIM/PLASIM_valid_1460.h5
+    #train_times_path: /data/PLASIM/PLASIM_train_10000_times.pkl
+    #val_times_path: /data/PLASIM/PLASIM_valid_1460_times.pkl
+    #norm_stats_path: /data/PLASIM/PLASIM/norm_stats.npz
+    #boundary_path: /data/PLASIM/PLASIM/boundary_vars.h5
 
     training_nsteps: 1 # train on next-step prediction
     val_nsteps: 40 # valid up to 40 steps
