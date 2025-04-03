@@ -6,7 +6,7 @@ all_files = glob.glob('/pscratch/sd/a/ayz2/PLASIM/data_*.nc')
 
 # 2. Sort files numerically by extracting the year from the filename.
 def extract_year(filename):
-    match = re.search(r'data_(\d+)_sigma\.nc', filename)
+    match = re.search(r'data_(\d+)\.nc', filename)
     if match:
         return int(match.group(1))
     raise ValueError(f"Year not found in filename: {filename}")
