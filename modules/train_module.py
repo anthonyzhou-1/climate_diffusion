@@ -41,6 +41,8 @@ class TrainModule(L.LightningModule):
         self.lr = config.training.lr
         self.config = config
 
+        self.ddp = True if config.strategy == 'ddp' else False
+
     def forward(self, u, sigma_t, scalar_params, grid_params):
         return self.model(u, sigma_t, scalar_params, grid_params)
     
@@ -56,7 +58,7 @@ class TrainModule(L.LightningModule):
         if eval:
             return loss, model_input, pred, target
 
-        self.log("train_loss", loss.mean(), on_step=False, on_epoch=True)
+        self.log("train_loss", loss.mean(), on_step=True, on_epoch=True, sync_dist=self.ddp)
 
         return loss
 
@@ -77,7 +79,7 @@ class TrainModule(L.LightningModule):
         
 
         # visualize the prediction for first batch
-        if batch_idx == 0 and self.config.training.visualize:
+        if batch_idx == 0 and self.config.training.visualize and self.global_rank == 0:
             t2m_pred = pred_feat_dict['tas'].cpu().numpy()
             t2m_target = target_feat_dict['tas'].cpu().numpy()
             z500_pred = pred_feat_dict['zg'][..., 7].cpu().numpy()
@@ -111,21 +113,21 @@ class TrainModule(L.LightningModule):
         u10m_loss = loss_dict['ua'][..., 0].mean(0) # u wind at level=0
         t850_loss = loss_dict['ta'][..., -1].mean(0) # temp at level=9
         
-        self.log('val_t2m_72', t2m_loss[11].item(), on_step=False, on_epoch=True)
-        self.log('val_t2m_120', t2m_loss[19].item(), on_step=False, on_epoch=True)
-        self.log('val_t2m_240', t2m_loss[39].item(), on_step=False, on_epoch=True)
+        self.log('val_t2m_72', t2m_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val_t2m_120', t2m_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val_t2m_240', t2m_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
-        self.log('val_z500_72', z500_loss[11].item(), on_step=False, on_epoch=True)
-        self.log('val_z500_120', z500_loss[19].item(), on_step=False, on_epoch=True)
-        self.log('val_z500_240', z500_loss[39].item(), on_step=False, on_epoch=True)
+        self.log('val_z500_72', z500_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val_z500_120', z500_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('val_z500_240', z500_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
-        self.log('u10m_72', u10m_loss[11].item(), on_step=False, on_epoch=True)
-        self.log('u10m_120', u10m_loss[19].item(), on_step=False, on_epoch=True)
-        self.log('u10m_240', u10m_loss[39].item(), on_step=False, on_epoch=True)
+        self.log('u10m_72', u10m_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('u10m_120', u10m_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('u10m_240', u10m_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
-        self.log('t850_72', t850_loss[11].item(), on_step=False, on_epoch=True)
-        self.log('t850_120', t850_loss[19].item(), on_step=False, on_epoch=True)
-        self.log('t850_240', t850_loss[39].item(), on_step=False, on_epoch=True)
+        self.log('t850_72', t850_loss[11].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('t850_120', t850_loss[19].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
+        self.log('t850_240', t850_loss[39].item(), on_step=False, on_epoch=True, sync_dist=self.ddp)
 
     @torch.no_grad()
     def predict(self, model,
@@ -151,8 +153,8 @@ class TrainModule(L.LightningModule):
         surface_target = surface_feat_traj[:, 1:] # b t nlat nlon c
         multilevel_target = multilevel_feat_traj[:, 1:] # b t nlat nlon nlevel c
 
-        surface_pred = torch.zeros_like(surface_target) # b t nlat nlon c
-        multilevel_pred = torch.zeros_like(multilevel_target) # b t nlat nlon nlevel c
+        surface_pred = torch.zeros_like(surface_target, device=surface_init.device) # b t nlat nlon c
+        multilevel_pred = torch.zeros_like(multilevel_target, device=multilevel_init.device) # b t nlat nlon nlevel c
 
         # let's predict!
         for t in range(surface_target.shape[1]):
@@ -168,6 +170,8 @@ class TrainModule(L.LightningModule):
             # update model_input
             model_input = model_pred
 
+        surface_pred, multilevel_pred = self.normalizer.batch_denormalize(surface_pred, multilevel_pred)
+
         pred_feat_dict = {}
         target_feat_dict = {}
         for c, surface_feat_name in enumerate(surface_var_names):
@@ -177,10 +181,6 @@ class TrainModule(L.LightningModule):
         for c, multilevel_feat_name in enumerate(multilevel_var_names):
             pred_feat_dict[multilevel_feat_name] = multilevel_pred[..., c]
             target_feat_dict[multilevel_feat_name] = multilevel_target[..., c]
-
-        # calculate the unnormalized loss
-        self.normalizer.batch_denormalize(pred_feat_dict)
-        self.normalizer.batch_denormalize(target_feat_dict)
 
         loss_dict = {k:
                         latitude_weighted_rmse(pred_feat_dict[k], target_feat_dict[k],
@@ -194,6 +194,6 @@ class TrainModule(L.LightningModule):
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.8)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.75)
 
         return [optimizer], [scheduler]

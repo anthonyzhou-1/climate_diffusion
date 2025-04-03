@@ -22,7 +22,7 @@ def main(config):
     now = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     seed_everything(seed)
 
-    name = f"ClimaDiT_{now}"
+    name = f"ClimaDiT_{config.description}_{config.strategy}_{now}"
     wandb_logger = WandbLogger(project=config.project_name,
                                name=name)
     config.log_dir = config.log_dir + '/' + name 
@@ -46,14 +46,14 @@ def main(config):
 
     trainer = L.Trainer(devices = config.devices,
                         accelerator = config.accelerator,
+                        strategy = config.strategy,
                         check_val_every_n_epoch = config.training.check_val_every_n_epoch,
                         max_epochs = config.training.max_epochs,
                         default_root_dir = config.log_dir,
                         callbacks=[checkpoint_callback, lr_monitor],
                         logger=wandb_logger,
                         gradient_clip_val=config.training.gradient_clip_val,
-                        accumulate_grad_batches=config.training.gradient_accumulation_steps,
-                        num_sanity_val_steps=0)
+                        accumulate_grad_batches=config.training.gradient_accumulation_steps)
     
     if config.training.checkpoint is not None:
         trainer.fit(model=model,

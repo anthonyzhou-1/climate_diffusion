@@ -2,10 +2,6 @@ import torch
 import torch.nn as nn
 from torch_harmonics import InverseRealSHT
 
-@torch.no_grad()
-def unflatten_scalar(x, scalar):
-    return scalar.view(-1, *[1 for _ in range(x.ndim - 1)])
-
 # homemade ODE integrator
 class ODEIntegrator:
     def __init__(self,
@@ -76,7 +72,6 @@ class DummyScheduler(nn.Module):
     def predict_and_refine(self, x, cond_param, grid_param, model):
         return model(x, None, cond_param, grid_param)
 
-@torch.no_grad()
 def unflatten_scalar(x, scalar):
     return scalar.view(-1, *[1 for _ in range(x.ndim - 1)])
 
@@ -179,7 +174,6 @@ class SphereLinearScheduler(nn.Module):
         loss = self.training_criterion(pred, target)
         return loss, pred, target
 
-    @torch.inference_mode()
     def predict_and_refine(self, x, cond_param, grid_param,
                            model, refinement_steps=None):
         if refinement_steps is None:

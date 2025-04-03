@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -C cpu
-#SBATCH -q debug
+#SBATCH -q regular
 #SBATCH -J process_data
 #SBATCH --mail-user=ayz2@andrew.cmu.edu
 #SBATCH --mail-type=ALL
@@ -16,4 +16,4 @@ export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
 #run the application:
-srun -n 1 -c 256 --cpu_bind=cores python process_data.py
+srun -n 1 -c 256 --cpu_bind=cores python cdf2zarr.py
