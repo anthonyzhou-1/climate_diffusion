@@ -1,16 +1,16 @@
 #!/bin/bash 
-#SBATCH --time=00:20:00
+#SBATCH --time=24:00:00
 #SBATCH -C gpu
 #SBATCH --account=m4818
 #SBATCH --mail-user=ayz2@andrew.cmu.edu
 #SBATCH --mail-type=ALL
-#SBATCH -q debug
+#SBATCH -q regular
 #SBATCH --nodes=1
 #SBATCH -G 4
 #SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=32
-#SBATCH -J climate_small
+#SBATCH -J climate_small_dummy
 #SBATCH --gpus-per-task=1
 #SBATCH --gpu-bind=none
 
