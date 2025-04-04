@@ -5,7 +5,7 @@ devices: 4
 accelerator: gpu
 strategy: ddp
 seed: 42
-description: small_perl
+description: small_perl_dummy
 
 model:
     name: dit
@@ -18,7 +18,7 @@ model:
     num_constants: 6 # lsm sg z0; rsdt sic sst
     dim: 512
     num_heads: 16
-    in_dim: 146  # 5 multilevel vars * 13 levels = 65 + 8 surface features = 73 * 2 (past timestep + noise) = 146
+    in_dim: 73  # 5 multilevel vars * 13 levels = 65 + 8 surface features = 73
     out_dim: 73 # only predict noise 
     proj_bottleneck_dim: 512
     kernel_expansion_ratio: 1.0
