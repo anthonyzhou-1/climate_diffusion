@@ -23,7 +23,7 @@ model:
     proj_bottleneck_dim: 512
     kernel_expansion_ratio: 1.0
     depth_dropout: 0.0
-    scale_by_sigma: True
+    scale_by_sigma: False # turn off since no noise timestep
     l_max: 20
 
 data:
