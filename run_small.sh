@@ -1,10 +1,10 @@
 #!/bin/bash 
-#SBATCH --time=24:00:00
+#SBATCH --time=00:20:00
 #SBATCH -C gpu
 #SBATCH --account=m4818
 #SBATCH --mail-user=ayz2@andrew.cmu.edu
 #SBATCH --mail-type=ALL
-#SBATCH -q regular
+#SBATCH -q debug
 #SBATCH --nodes=1
 #SBATCH -G 4
 #SBATCH --ntasks-per-node=4
@@ -16,7 +16,7 @@
 
 export SLURM_CPU_BIND="cores"
 
-config_file=./configs/small_perl.yaml
+config_file=./configs/small_perl_ar.yaml
 
 module load conda
 conda activate /pscratch/sd/a/ayz2/envs/climate
