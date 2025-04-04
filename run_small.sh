@@ -1,10 +1,10 @@
 #!/bin/bash 
-#SBATCH --time=00:20:00
+#SBATCH --time=24:00:00
 #SBATCH -C gpu
 #SBATCH --account=m4818
 #SBATCH --mail-user=ayz2@andrew.cmu.edu
 #SBATCH --mail-type=ALL
-#SBATCH -q debug
+#SBATCH -q regular
 #SBATCH --nodes=1
 #SBATCH -G 4
 #SBATCH --ntasks-per-node=4
