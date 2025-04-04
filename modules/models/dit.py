@@ -296,10 +296,10 @@ class ClimaDIT(nn.Module):
                 self.patch_size,  # dummy patch size
                 self.out_dim)
         else:
-            # just standard linear layer
+            # just standard linear layer   
             self.output_layer = nn.Sequential(
                         nn.LayerNorm(self.dim),
-                        nn.Linear(self.dim, self.out_dim,
+                        nn.Linear(self.dim, self.patch_size * self.patch_size * self.out_dim,
                                   bias=True))
 
         self.init_params()
