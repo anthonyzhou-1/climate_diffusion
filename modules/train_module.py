@@ -5,7 +5,7 @@ from modules.models.dit import ClimaDIT
 from dataset.plasim import SURFACE_FEATURES, MULTI_LEVEL_FEATURES
 from common.loss import LatitudeWeightedMSE, latitude_weighted_rmse
 from common.utils import assemble_grid_params, assemble_input, assemble_scalar_params, disassemble_input, plot_result_2d
-from modules.diffusion import SphereLinearScheduler
+from modules.diffusion import SphereLinearScheduler, DummyScheduler
 
 class TrainModule(L.LightningModule):
     def __init__(self,
@@ -24,18 +24,28 @@ class TrainModule(L.LightningModule):
                 nlon=config.data.nlon,
             )
         
-        self.loss_module = SphereLinearScheduler(
-            num_train_steps=config.training.num_train_steps,
-            num_refinement_steps=config.training.num_refinement_steps,
-            training_criterion=self.mse_criterion,
-            noise_input=config.training.noise_input,
-            input_noise_scale=config.training.input_noise_scale,
-            l_max=config.training.spherical_l_max,
-            noise_type=config.training.noise_type,
-            integrator=config.training.integrator,
-            restart=config.training.restart,
-            restart_step=config.training.restart_step,
-        )
+        self.diffusion_mode = config.training.noise_schedule
+
+        if self.diffusion_mode == "flow":
+            self.loss_module = SphereLinearScheduler(
+                num_train_steps=config.training.num_train_steps,
+                num_refinement_steps=config.training.num_refinement_steps,
+                training_criterion=self.mse_criterion,
+                noise_input=config.training.noise_input,
+                input_noise_scale=config.training.input_noise_scale,
+                l_max=config.training.spherical_l_max,
+                noise_type=config.training.noise_type,
+                integrator=config.training.integrator,
+                restart=config.training.restart,
+                restart_step=config.training.restart_step,
+            )
+        elif self.diffusion_mode == "dummy": # next-step prediction
+            self.loss_module = DummyScheduler(
+                training_criterion=self.mse_criterion,
+            )
+        else:
+            raise ValueError(f"Unknown diffusion mode: {self.diffusion_mode}")
+        
         self.normalizer = normalizer
         self.model = ClimaDIT(config)
         self.lr = config.training.lr
