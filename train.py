@@ -32,7 +32,7 @@ def main(config):
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_t2m_72",
-        filename= "model_{epoch:02d}-{val_t2m_72:.2f}",
+        filename= "model_{epoch:02d}-{val/t2m_72:.2f}",
         dirpath=config.log_dir,
         save_last=True,
         save_top_k=1
