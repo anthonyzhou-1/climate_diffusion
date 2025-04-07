@@ -49,6 +49,7 @@ data:
     nlon: 128
     with_poles: False
     load_into_memory: False
+    normalize: True
 
 training:
     lr: 1.7e-4
@@ -72,8 +73,8 @@ training:
     num_train_steps: 11
     min_noise_std: 1.e-3 # useless for flow
     noise_schedule: flow
-    noise_type: sphere
-    spherical_l_max: 32 # useless for gaussian
+    noise_type: spherical
+    spherical_l_max: 64 # useless for gaussian
     noise_input: False
     input_noise_scale: 1.e-1
 

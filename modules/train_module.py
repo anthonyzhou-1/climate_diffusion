@@ -184,6 +184,7 @@ class TrainModule(L.LightningModule):
             model_input = model_pred
 
         surface_pred, multilevel_pred = self.normalizer.batch_denormalize(surface_pred, multilevel_pred)
+        surface_target, multilevel_target = self.normalizer.batch_denormalize(surface_target, multilevel_target)
 
         pred_feat_dict = {}
         target_feat_dict = {}

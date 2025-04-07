@@ -6,7 +6,7 @@ from einops import rearrange
 
 from matplotlib import pyplot as plt
 
-def plot_result_2d(y, y_pred, filename, num_t=6, cmap='twilight_shifted'):
+def plot_result_2d(y_pred, y, filename, num_t=6, cmap='twilight_shifted'):
     # y in shape [t h w], y_pred in shape [t h w]
 
     t_total, h, w = y_pred.shape

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch_harmonics import InverseRealSHT
+from einops import rearrange
 
 # homemade ODE integrator
 class ODEIntegrator:
@@ -37,9 +38,9 @@ class ODEIntegrator:
                 model(torch.cat((x, y), dim=-1), t.expand(x.shape[0]).unsqueeze(-1), **model_kwargs)
 
         for i_t in range(len(stencils)-1):
-            t_current = stencils[i_t]
-            t_next = stencils[i_t+1]
-            dt = t_next - t_current
+            t_current = stencils[i_t] # sigma_t
+            t_next = stencils[i_t+1] # sigma_t+1
+            dt = t_next - t_current # (sigma_t+1 - sigma_t)
             if self.method != 'midpoint':
                 y = self.step_fn(y, model_wrapper_fn, dt,
                                  [timesteps[i_t], timesteps[i_t+1]],
@@ -82,19 +83,26 @@ class SphereNoiseGenerator(nn.Module):
         self.l_max = l_max
         self.isht = InverseRealSHT(l_max, l_max*2, grid="equiangular")
 
-    def forward(self, b, device, dtype=torch.complex64, l_max=None):
+    def forward(self, b, c, device, dtype=torch.complex64, l_max=None):
         # sample coefficient in the frequency domain
         # b: batch size, l_max: maximum degree
         # return: [b, l_max, l_max + 1] # coefficient for real harmonics
         if l_max is None:
             l_max = self.l_max
-            coeffs = torch.randn(b, l_max, l_max + 1, device=device, dtype=dtype)
+            coeffs = torch.randn(b*c, l_max, l_max + 1, device=device, dtype=dtype)
         else:
             assert l_max <= self.l_max
-            coeffs = torch.randn(b, self.l_max, self.l_max + 1, device=device, dtype=dtype)
+            coeffs = torch.randn(b*c, self.l_max, self.l_max + 1, device=device, dtype=dtype)
             # fill with zeros
             coeffs[:, l_max:, :] = 0
-        return self.isht(coeffs)
+
+        noise = self.isht(coeffs)
+        noise = rearrange(noise, '(b c) h w -> b h w c', b=b, c=c)
+        noise_means = torch.mean(noise, dim=(1, 2), keepdim=True)
+        noise_stds = torch.std(noise, dim=(1, 2), keepdim=True)
+        noise = (noise - noise_means) / noise_stds
+
+        return noise
 
 class SphereLinearScheduler(nn.Module):
     def __init__(self,
@@ -131,25 +139,28 @@ class SphereLinearScheduler(nn.Module):
         self.noise_type = noise_type
         if noise_type == 'spherical':
             # currently the max grid resolution is hard coded
-            self.noise_generator = SphereNoiseGenerator(128)
+            self.noise_generator = SphereNoiseGenerator(64) # generates 64x128 grid
             self.l_max = l_max
-        else:
+        elif noise_type == 'gaussian':
             self.noise_generator = None
             self.l_max = None
+        else:
+            raise ValueError('Unknown noise type: {}'.format(noise_type))
 
     def get_noise(self, size, device):
         if self.noise_type == 'spherical':
             b = size[0]
-            return self.noise_generator(b, device, l_max=self.l_max)
-        else:
+            c = size[-1]
+            return self.noise_generator(b, c, device, l_max=self.l_max) # shape b, l_max, 2*l_max, 1
+        elif self.noise_type == 'gaussian':
             return torch.randn(size, device=device)
 
     def compute_loss(self, x, y, cond, grid_cond, model):
-        # for now, assume it's Markovian
         # x: [b nlat nlon d]
         # y: [b nlat nlon d]
         # cond: [b 2] in this case
         # grid_cond: [b nlat nlon c]
+        
         noise = self.get_noise(size=y.shape, device=y.device).to(y.dtype)
 
         # no need to train on k=0
@@ -157,16 +168,17 @@ class SphereLinearScheduler(nn.Module):
 
         # retrieve from the scheduler
 
-        sigma_t = self.sigmas.to(x.device)[k]
-        alpha_t = (1 - sigma_t)
+        sigma_t = self.sigmas.to(x.device)[k] # noise coeff
+        alpha_t = (1 - sigma_t) # signal coeff
         alpha_t = alpha_t.view(-1, *[1 for _ in range(y.ndim - 1)])
         sigma_t = sigma_t.view(-1, *[1 for _ in range(y.ndim - 1)])
-        y_noised = alpha_t * y + sigma_t * noise
+        y_noised = alpha_t * y + sigma_t * noise # y_t = alpha_t * y_0 + sigma_t * eps
 
         if self.noise_input:
             # do the reverse of the y noising scheme
             x = x + alpha_t * torch.randn_like(x) * self.input_noise_scale
 
+        # conditional prediction. Concat condition (x) and noised input (y_noised)
         u_in = torch.cat([x, y_noised], dim=-1)  # input both condition and noised prediction, [b nlat nlon 2d]
         pred = model(u_in, k.float().view(-1, 1), cond, grid_cond) # the cond is in range [0, 1]
         target = noise - y # predict eps - y

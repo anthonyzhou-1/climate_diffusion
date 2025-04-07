@@ -49,6 +49,7 @@ data:
     nlon: 128
     with_poles: False
     load_into_memory: False
+    normalize: True
 
 training:
     lr: 1.7e-4

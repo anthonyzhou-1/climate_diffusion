@@ -17,6 +17,7 @@ class ClimateDataModule(L.LightningDataModule):
                                         boundary_path=self.config.data.boundary_path,
                                         time_path=self.config.data.train_times_path,
                                         nsteps=self.config.data.training_nsteps,   
+                                        normalize_feature=config.data.normalize,
                                         split='train')
         
         self.val_dataset = PLASIMData(data_path=self.config.data.val_data_path,
@@ -24,6 +25,7 @@ class ClimateDataModule(L.LightningDataModule):
                                     boundary_path=self.config.data.boundary_path,
                                     time_path=self.config.data.val_times_path,
                                     nsteps=self.config.data.val_nsteps,
+                                    normalize_feature=config.data.normalize,
                                     split="valid",
                                     load_into_memory=True)
         

@@ -183,6 +183,7 @@ class PLASIMData(Dataset):
 
         self.nstamps = len(self.time_coords_filtered)
         print(f"Loaded {self.nstamps} time stamps for {split} split, from {self.time_coords[0].strftime()} to {self.time_coords[-1].strftime()}")
+        print(f"Normalize: {self.normalize_feature}, Load into memory: {self.load_into_memory}")
 
     def __len__(self):
         return self.nstamps
