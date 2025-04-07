@@ -167,10 +167,9 @@ class SphereLinearScheduler(nn.Module):
             # do the reverse of the y noising scheme
             x = x + alpha_t * torch.randn_like(x) * self.input_noise_scale
 
-        y_noised = y_noised
         u_in = torch.cat([x, y_noised], dim=-1)  # input both condition and noised prediction, [b nlat nlon 2d]
         pred = model(u_in, k.float().view(-1, 1), cond, grid_cond) # the cond is in range [0, 1]
-        target = noise - y
+        target = noise - y # predict eps - y
         loss = self.training_criterion(pred, target)
         return loss, pred, target
 

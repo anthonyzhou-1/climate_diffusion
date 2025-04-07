@@ -1,9 +1,9 @@
 #log_dir: /pscratch/sd/a/ayz2/PLASIM_logs
 log_dir: logs
 project_name: PLASIM_flow_matching
-devices: [0]
+devices: 3
 accelerator: gpu
-strategy: auto
+strategy: ddp
 seed: 42
 description: small
 
@@ -36,12 +36,12 @@ data:
     #boundary_path: /pscratch/sd/a/ayz2/PLASIM/processed/boundary_vars.h5
 
     # local paths
-    train_data_path: /data/PLASIM/PLASIM_train_10000.h5
-    val_data_path: /data/PLASIM/PLASIM_valid_1460.h5
-    train_times_path: /data/PLASIM/PLASIM_train_10000_times.pkl
-    val_times_path: /data/PLASIM/PLASIM_valid_1460_times.pkl
-    norm_stats_path: /data/PLASIM/PLASIM/norm_stats.npz
-    boundary_path: /data/PLASIM/PLASIM/boundary_vars.h5
+    train_data_path: /data/PLASIM/new/PLASIM_train_146096.h5
+    val_data_path: /data/PLASIM/new/PLASIM_valid_1460.h5
+    train_times_path: /data/PLASIM/new/PLASIM_train_146096_times.pkl
+    val_times_path: /data/PLASIM/new/PLASIM_valid_1460_times.pkl
+    norm_stats_path: /data/PLASIM/new/norm_stats.npz
+    boundary_path: /data/PLASIM/new/boundary_vars.h5
 
     training_nsteps: 1 # train on next-step prediction
     val_nsteps: 40 # valid up to 40 steps
@@ -56,13 +56,13 @@ training:
     beta1: 0.9
     beta2: 0.95
     
-    check_val_every_n_epoch: 2
+    check_val_every_n_epoch: 1
     log_every_n_steps: 100
     max_epochs: 20
     checkpoint: null
 
-    batch_size_per_device: 32
-    eval_batch_size: 32
+    batch_size_per_device: 8
+    eval_batch_size: 8
     num_workers: 16
     gradient_accumulation_steps: 1
     skip_step: 0
