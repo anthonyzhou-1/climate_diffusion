@@ -31,7 +31,7 @@ def main(config):
     save_yaml(config, config.log_dir + "/config.yml")
 
     checkpoint_callback = ModelCheckpoint(
-        monitor="val_t2m_72",
+        monitor="val/t2m_72",
         filename= "model_{epoch:02d}-{val/t2m_72:.2f}",
         dirpath=config.log_dir,
         save_last=True,
