@@ -1,5 +1,5 @@
 #!/bin/bash 
-#SBATCH --time=00:12:00
+#SBATCH --time=12:00:00
 #SBATCH -C gpu
 #SBATCH --account=m4818
 #SBATCH --mail-user=ayz2@andrew.cmu.edu
