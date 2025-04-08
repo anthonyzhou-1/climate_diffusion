@@ -5,7 +5,7 @@ devices: 4
 accelerator: gpu
 strategy: ddp
 seed: 42
-description: small_perl
+description: small_perl_gaussian
 
 model:
     name: dit
@@ -73,7 +73,7 @@ training:
     num_train_steps: 11
     min_noise_std: 1.e-3 # useless for flow
     noise_schedule: flow
-    noise_type: spherical
+    noise_type: gaussian
     spherical_l_max: 32 # useless for gaussian
     noise_input: False
     input_noise_scale: 1.e-1

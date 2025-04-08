@@ -1,5 +1,5 @@
 #!/bin/bash 
-#SBATCH --time=24:00:00
+#SBATCH --time=00:12:00
 #SBATCH -C gpu
 #SBATCH --account=m4818
 #SBATCH --mail-user=ayz2@andrew.cmu.edu
@@ -10,13 +10,13 @@
 #SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=32
-#SBATCH -J climate_small_dummy
+#SBATCH -J climate_small_gaussian
 #SBATCH --gpus-per-task=1
 #SBATCH --gpu-bind=none
 
 export SLURM_CPU_BIND="cores"
 
-config_file=./configs/small_perl_ar.yaml
+config_file=./configs/small_perl.yaml
 
 module load conda
 conda activate /pscratch/sd/a/ayz2/envs/climate
