@@ -73,7 +73,7 @@ training:
     num_train_steps: 11
     min_noise_std: 1.e-3 # useless for flow
     noise_schedule: flow
-    noise_type: spherical
+    noise_type: gaussian
     spherical_l_max: 64 # useless for gaussian
     noise_input: False
     input_noise_scale: 1.e-1
