@@ -69,16 +69,16 @@ training:
     skip_step: 0
     gradient_clip_val: 1.0
 
-    num_refinement_steps: 5 # 5
-    num_train_steps: 11
+    num_refinement_steps: 10 
+    num_train_steps: 21
     min_noise_std: 1.e-3 # useless for flow
     noise_schedule: flow
-    noise_type: gaussian
+    noise_type: spherical
     spherical_l_max: 64 # useless for gaussian
     noise_input: False
     input_noise_scale: 1.e-1
 
-    integrator: euler
+    integrator: heun
     restart: False
     restart_step: 8
 
