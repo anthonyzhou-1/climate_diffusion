@@ -52,7 +52,7 @@ data:
     normalize: True
 
 training:
-    lr: 1.e-5
+    lr: 1.7e-4
     min_lr: 1.e-7
     beta1: 0.9
     beta2: 0.95
