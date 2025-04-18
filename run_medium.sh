@@ -4,7 +4,7 @@
 #SBATCH --account=m4818
 #SBATCH --mail-user=ayz2@andrew.cmu.edu
 #SBATCH --mail-type=ALL
-#SBATCH -q regular
+#SBATCH -q premium
 #SBATCH --nodes=1
 #SBATCH -G 4
 #SBATCH --ntasks-per-node=4
