@@ -60,7 +60,7 @@ training:
     check_val_every_n_epoch: 1
     log_every_n_steps: 100
     max_epochs: 100
-    checkpoint: null
+    checkpoint: /pscratch/sd/a/ayz2/PLASIM_logs/ClimaDiT_medium_perl_ddp_2025-04-17T01-25-06/last.ckpt
 
     batch_size_per_device: 4
     eval_batch_size: 8
